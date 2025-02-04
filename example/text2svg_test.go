@@ -9,7 +9,7 @@ import (
 func TestText2svg(t *testing.T) {
 	options := text2svg.Options{
 		Text:     "Hello World",
-		FontPath: "/Users/ibryang/Downloads/ibryangLato.ttf",
+		FontPath: "Cookie.ttf",
 		FontSize: 10,
 		Width:    100,
 		Height:   30,

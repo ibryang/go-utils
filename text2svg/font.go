@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ibryang/go-utils/os/file"
 	"github.com/tdewolff/canvas"
 )
 
@@ -25,8 +26,12 @@ func (l *fileFontLoader) load(path string) (*canvas.Font, error) {
 // systemFontLoader 实现从系统加载字体
 type systemFontLoader struct{}
 
-func (l *systemFontLoader) load(path string) (*canvas.Font, error) {
-	return canvas.LoadSystemFont(path, canvas.FontBlack)
+func (l *systemFontLoader) load(path string) (font *canvas.Font, err error) {
+	font, err = canvas.LoadSystemFont(path, canvas.FontBlack)
+	if err != nil {
+		return canvas.LoadSystemFont(file.Name(path), canvas.FontBlack)
+	}
+	return
 }
 
 // fontManager 管理字体加载
