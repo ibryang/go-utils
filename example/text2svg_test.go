@@ -8,11 +8,9 @@ import (
 
 func TestText2svg(t *testing.T) {
 	options := text2svg.Options{
-		Text:     "Hello World",
-		FontPath: "Cookie.ttf",
-		FontSize: 10,
-		Width:    100,
-		Height:   30,
+		Text:     "JosephineQ",
+		FontPath: "LDRoadsDEMO",
+		FontSize: 230.15,
 	}
 
 	result := text2svg.Convert(options)
@@ -24,5 +22,21 @@ func TestText2svg(t *testing.T) {
 
 	if err := text2svg.SaveToFile(result.Svg, "text2svg.svg"); err != nil {
 		t.Fatalf("保存文件失败: %v", err)
+	}
+}
+
+func TestText2svgColors(t *testing.T) {
+	options := text2svg.Options{
+		Text:     "Tommy lee",
+		FontPath: "LDRoadsDEMO",
+		FontSize: 230.15,
+		Colors:   []string{"#ca2128", "#dc602c", "#f3b747", "#07954b", "#2179b9", "#21378c"},
+		SavePath: "text2svg_colors.png",
+		DPI:      300,
+	}
+
+	err := text2svg.CanvasConvert(options)
+	if err != nil {
+		t.Fatalf("转换失败: %v", err)
 	}
 }

@@ -23,3 +23,7 @@ func Ext(path string) string {
 	}
 	return ext
 }
+
+func ExtName(path string) string {
+	return Ext(path)[1:]
+}
