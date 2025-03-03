@@ -235,13 +235,14 @@ func GenerateCanvas(options Options) (*canvas.Canvas, error) {
 	// 计算总宽度和高度
 	var totalWidth float64
 	var maxHeight float64
-	var minY float64 // 添加跟踪最小Y坐标
-	var maxY float64 // 添加跟踪最大Y坐标
+	var minY float64
+	var maxY float64
 	var paths []*canvas.Path
 	var xOffsets []float64
+	var bounds []canvas.Rect
 
-	// 将每个字符转换为路径并记录位置
-	for i, char := range options.Text {
+	// 第一遍：收集所有路径和边界信息
+	for _, char := range options.Text {
 		path, advance, err := face.ToPath(string(char))
 		if err != nil {
 			return nil, fmt.Errorf("转换文本到路径失败: %v", err)
@@ -249,25 +250,31 @@ func GenerateCanvas(options Options) (*canvas.Canvas, error) {
 		if path == nil {
 			continue
 		}
-		bounds := path.Bounds()
-
-		// 记录第一个字符的基线位置作为参考
-		if i == 0 {
-			minY = bounds.Y0
-			maxY = bounds.Y1
-		}
-
-		// 更新最小和最大Y坐标
-		if bounds.Y0 < minY {
-			minY = bounds.Y0
-		}
-		if bounds.Y1 > maxY {
-			maxY = bounds.Y1
-		}
-
+		pathBounds := path.Bounds()
+		bounds = append(bounds, pathBounds)
 		paths = append(paths, path)
 		xOffsets = append(xOffsets, totalWidth)
-		totalWidth += advance
+
+		// 更新Y坐标范围
+		if len(paths) == 1 {
+			minY = pathBounds.Y0
+			maxY = pathBounds.Y1
+		} else {
+			if pathBounds.Y0 < minY {
+				minY = pathBounds.Y0
+			}
+			if pathBounds.Y1 > maxY {
+				maxY = pathBounds.Y1
+			}
+		}
+
+		// 使用实际字符宽度而不是advance值来计算位置
+		// 对于最后一个字符，我们使用实际宽度
+		if len(paths) == len(options.Text) {
+			totalWidth += pathBounds.W()
+		} else {
+			totalWidth += advance
+		}
 	}
 
 	// 使用实际的字符高度范围计算总高度
@@ -288,9 +295,8 @@ func GenerateCanvas(options Options) (*canvas.Canvas, error) {
 	for i, path := range paths {
 		colorIndex := i % len(options.Colors)
 		ctx.SetFillColor(canvas.Hex(options.Colors[colorIndex]))
-		bounds := path.Bounds()
 		// 调整Y偏移以确保字符完全显示
-		ctx.DrawPath(xOffsets[i]-bounds.X0, -minY, path)
+		ctx.DrawPath(xOffsets[i]-bounds[i].X0, -minY, path)
 	}
 
 	return c, nil
