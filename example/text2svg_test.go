@@ -27,11 +27,12 @@ func TestText2svg(t *testing.T) {
 
 func TestText2svgColors(t *testing.T) {
 	options := text2svg.Options{
-		Text:     "Tommy leeq-+",
+		// Text:     "Léo",
+		Text:     "JoseéphineQ",
 		FontPath: "LDRoadsDEMO",
 		FontSize: 230.15,
 		Colors:   []string{"#ca2128", "#dc602c", "#f3b747", "#07954b", "#2179b9", "#21378c"},
-		SavePath: "text2svg_colors.png",
+		SavePath: "text2svg_colors.svg",
 		DPI:      300,
 	}
 
