@@ -240,20 +240,35 @@ func GenerateCanvas(options Options) (*canvas.Canvas, error) {
 	var paths []*canvas.Path
 	var xOffsets []float64
 	var bounds []canvas.Rect
+	var colorIndices []int    // 存储每个字符对应的颜色索引
+	var colorCount int        // 非空格字符计数
+	var lastCharWidth float64 // 记录最后一个非空格字符的实际宽度
 
 	// 第一遍：收集所有路径和边界信息
-	for _, char := range options.Text {
+	runes := []rune(options.Text)
+	for i, char := range runes {
 		path, advance, err := face.ToPath(string(char))
 		if err != nil {
 			return nil, fmt.Errorf("转换文本到路径失败: %v", err)
 		}
+
+		// 处理空格字符
+		if char == ' ' {
+			colorIndices = append(colorIndices, -1) // 用-1标记空格
+			totalWidth += advance
+			continue
+		}
+
 		if path == nil {
 			continue
 		}
+
 		pathBounds := path.Bounds()
 		bounds = append(bounds, pathBounds)
 		paths = append(paths, path)
 		xOffsets = append(xOffsets, totalWidth)
+		colorIndices = append(colorIndices, colorCount%len(options.Colors))
+		colorCount++ // 只对非空格字符计数
 
 		// 更新Y坐标范围
 		if len(paths) == 1 {
@@ -268,13 +283,18 @@ func GenerateCanvas(options Options) (*canvas.Canvas, error) {
 			}
 		}
 
-		// 使用实际字符宽度而不是advance值来计算位置
-		// 对于最后一个字符，我们使用实际宽度
-		if len(paths) == len(options.Text) {
-			totalWidth += pathBounds.W()
-		} else {
+		// 记录最后一个非空格字符的实际宽度
+		lastCharWidth = pathBounds.W()
+
+		// 如果不是最后一个字符，使用advance值
+		if i < len(runes)-1 {
 			totalWidth += advance
 		}
+	}
+
+	// 添加最后一个字符的实际宽度
+	if lastCharWidth > 0 {
+		totalWidth += lastCharWidth
 	}
 
 	// 使用实际的字符高度范围计算总高度
@@ -292,11 +312,17 @@ func GenerateCanvas(options Options) (*canvas.Canvas, error) {
 	}
 
 	// 绘制每个字符并设置颜色
-	for i, path := range paths {
-		colorIndex := i % len(options.Colors)
+	pathIndex := 0
+	for _, colorIndex := range colorIndices {
+		if colorIndex == -1 { // 跳过空格
+			continue
+		}
+
+		path := paths[pathIndex]
 		ctx.SetFillColor(canvas.Hex(options.Colors[colorIndex]))
 		// 调整Y偏移以确保字符完全显示
-		ctx.DrawPath(xOffsets[i]-bounds[i].X0, -minY, path)
+		ctx.DrawPath(xOffsets[pathIndex]-bounds[pathIndex].X0, -minY, path)
+		pathIndex++
 	}
 
 	return c, nil
