@@ -16,6 +16,14 @@ func calculateDimensions(originalWidth, originalHeight, targetWidth, targetHeigh
 		return
 	}
 
+	if targetWidth <= 0 && targetHeight > 0 {
+		height = targetHeight
+		width = targetHeight * originalRatio
+		scaleY = targetHeight / originalHeight
+		scaleX = scaleY
+		return
+	}
+
 	targetRatio := targetWidth / targetHeight
 
 	if originalRatio > targetRatio {

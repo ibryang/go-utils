@@ -11,6 +11,16 @@ func TestText2svg(t *testing.T) {
 		Text:     "JosephineQ",
 		FontPath: "LDRoadsDEMO",
 		FontSize: 230.15,
+		ExtraTexts: []text2svg.ExtraTextInfo{
+			{
+				// 左下角(0,0)位置
+				Text:     "001",
+				FontSize: 16,
+				Color:    "#ff0000",
+				X:        20,
+				Y:        5, // 从底部算，接近底部
+			},
+		},
 	}
 
 	result := text2svg.Convert(options)
@@ -28,11 +38,11 @@ func TestText2svg(t *testing.T) {
 func TestText2svgColors(t *testing.T) {
 	options := text2svg.Options{
 		// Text:     "Léo",
-		Text:     "JoseéphineQ",
+		Text:     "JosephineQ",
 		FontPath: "LDRoadsDEMO",
 		FontSize: 230.15,
 		Colors:   []string{"#ca2128", "#dc602c", "#f3b747", "#07954b", "#2179b9", "#21378c"},
-		SavePath: "text2svg_colors.svg",
+		SavePath: "text2svg_colors.pdf",
 		DPI:      300,
 	}
 
