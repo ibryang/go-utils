@@ -16,6 +16,13 @@ import (
 	"github.com/tdewolff/canvas/renderers"
 )
 
+type RenderMode int
+
+const (
+	RenderModeChar RenderMode = iota
+	RenderModeString
+)
+
 // Options 定义文本转SVG的配置选项
 //
 // Width和Height与LockWidth和LockHeight的区别：
@@ -58,6 +65,7 @@ type Options struct {
 	LockWidth             float64         // 锁定最终宽度（如果设置，将动态调整水平内边距）
 	LockHeight            float64         // 锁定最终高度（如果设置，将动态调整垂直内边距）
 	ExtraTexts            []ExtraTextInfo // 额外的文本信息列表
+	RenderMode            RenderMode      // 渲染模式
 }
 
 // Result 包含转换结果
@@ -424,6 +432,7 @@ func processPadding(padding []float64) []float64 {
 	return result
 }
 
+// GenerateCanvas 将文本转换为画布
 func GenerateCanvas(options Options) (*canvas.Canvas, error) {
 	if len(options.Colors) == 0 {
 		options.Colors = []string{"#000000"}
@@ -460,7 +469,6 @@ func GenerateCanvas(options Options) (*canvas.Canvas, error) {
 
 	face := font.Face(options.FontSize, nil)
 
-	// 计算总宽度和高度
 	var totalWidth float64
 	var maxHeight float64
 	var minY float64
@@ -468,64 +476,80 @@ func GenerateCanvas(options Options) (*canvas.Canvas, error) {
 	var paths []*canvas.Path
 	var xOffsets []float64
 	var bounds []canvas.Rect
-	var colorIndices []int    // 存储每个字符对应的颜色索引
-	var colorCount int        // 非空格字符计数
-	var lastCharWidth float64 // 记录最后一个非空格字符的实际宽度
+	var colorIndices []int
 
-	// 第一遍：收集所有路径和边界信息
-	runes := []rune(options.Text)
-	for i, char := range runes {
-		path, advance, err := face.ToPath(string(char))
+	if options.RenderMode == RenderModeString {
+		// 整体字符串路径模式
+		path, _, err := face.ToPath(options.Text)
 		if err != nil {
 			return nil, fmt.Errorf("转换文本到路径失败: %v", err)
 		}
 
-		// 处理空格字符
-		if char == ' ' {
-			colorIndices = append(colorIndices, -1) // 用-1标记空格
-			totalWidth += advance
-			continue
-		}
-
 		if path == nil {
-			continue
+			return nil, fmt.Errorf("生成路径失败")
 		}
 
+		path = path.Transform(canvas.Matrix{
+			{1, 0, -path.Bounds().X0},
+			{0, 1, 0},
+		})
 		pathBounds := path.Bounds()
-		bounds = append(bounds, pathBounds)
-		paths = append(paths, path)
-		xOffsets = append(xOffsets, totalWidth)
-		colorIndices = append(colorIndices, colorCount%len(options.Colors))
-		colorCount++ // 只对非空格字符计数
+		totalWidth = pathBounds.W()
+		minY = pathBounds.Y0
+		maxY = pathBounds.Y1
 
-		// 更新Y坐标范围
-		if len(paths) == 1 {
-			minY = pathBounds.Y0
-			maxY = pathBounds.Y1
-		} else {
-			if pathBounds.Y0 < minY {
+		paths = []*canvas.Path{path}
+		bounds = []canvas.Rect{pathBounds}
+		xOffsets = []float64{0}
+		colorIndices = []int{0}
+	} else {
+		// 单字符路径模式
+		runes := []rune(options.Text)
+		colorCount := 0
+		for i, char := range runes {
+			path, advance, err := face.ToPath(string(char))
+			if err != nil {
+				return nil, fmt.Errorf("转换文本到路径失败: %v", err)
+			}
+
+			if char == ' ' {
+				colorIndices = append(colorIndices, -1)
+				totalWidth += advance
+				continue
+			}
+
+			if path == nil {
+				continue
+			}
+
+			pathBounds := path.Bounds()
+			bounds = append(bounds, pathBounds)
+			paths = append(paths, path)
+			xOffsets = append(xOffsets, totalWidth)
+			colorIndices = append(colorIndices, colorCount%len(options.Colors))
+			colorCount++
+
+			if len(paths) == 1 {
 				minY = pathBounds.Y0
-			}
-			if pathBounds.Y1 > maxY {
 				maxY = pathBounds.Y1
+			} else {
+				if pathBounds.Y0 < minY {
+					minY = pathBounds.Y0
+				}
+				if pathBounds.Y1 > maxY {
+					maxY = pathBounds.Y1
+				}
+			}
+
+			if i < len(runes)-1 {
+				totalWidth += advance
+				// totalWidth += pathBounds.W()
+			} else {
+				totalWidth += pathBounds.W()
 			}
 		}
-
-		// 记录最后一个非空格字符的实际宽度
-		lastCharWidth = pathBounds.W()
-
-		// 如果不是最后一个字符，使用advance值
-		if i < len(runes)-1 {
-			totalWidth += advance
-		}
 	}
 
-	// 添加最后一个字符的实际宽度
-	if lastCharWidth > 0 {
-		totalWidth += lastCharWidth
-	}
-
-	// 使用实际的字符高度范围计算总高度
 	maxHeight = maxY - minY
 
 	// 计算内边距的影响
@@ -694,53 +718,82 @@ func GenerateCanvas(options Options) (*canvas.Canvas, error) {
 	// 绘制每个字符并设置颜色
 	pathIndex := 0
 	for _, colorIndex := range colorIndices {
-		if colorIndex == -1 { // 跳过空格
-			continue
-		}
+		if options.RenderMode == RenderModeString {
+			// 整体字符串路径模式
+			path := paths[0]
 
-		path := paths[pathIndex]
+			// 保存当前上下文状态
+			ctx.Push()
 
-		// 检查路径是否有效（非空）
-		if path == nil {
-			pathIndex++
-			continue
-		}
+			// 如果启用描边，设置描边属性
+			if options.EnableStroke && options.StrokeWidth > 0 {
+				ctx.SetStrokeWidth(options.StrokeWidth)
+				ctx.SetStrokeColor(canvas.Hex(options.StrokeColor))
+				// 设置填充颜色
+				ctx.SetFillColor(canvas.Hex(options.Colors[0]))
+				// 绘制路径
+				ctx.DrawPath(offsetX, offsetY-minY, path)
+				// 同时填充和描边
+				ctx.FillStroke()
+			} else {
+				// 只填充文字
+				ctx.SetFillColor(canvas.Hex(options.Colors[0]))
+				ctx.DrawPath(offsetX, offsetY-minY, path)
+				ctx.Fill()
+			}
 
-		// 检查路径是否为空（通过检查其边界来判断）
-		pathBounds := path.Bounds()
-		if pathBounds.W() <= 0 || pathBounds.H() <= 0 {
-			pathIndex++
-			continue
-		}
-
-		// 计算当前字符的位置
-		charX := offsetX + xOffsets[pathIndex] - bounds[pathIndex].X0
-		charY := offsetY - minY
-
-		// 保存当前上下文状态
-		ctx.Push()
-
-		// 如果启用描边，设置描边属性
-		if options.EnableStroke && options.StrokeWidth > 0 {
-			ctx.SetStrokeWidth(options.StrokeWidth)
-			ctx.SetStrokeColor(canvas.Hex(options.StrokeColor))
-			// 设置填充颜色
-			ctx.SetFillColor(canvas.Hex(options.Colors[colorIndex]))
-			// 绘制路径
-			ctx.DrawPath(charX, charY, path)
-			// 同时填充和描边
-			ctx.FillStroke()
+			// 恢复上下文状态
+			ctx.Pop()
+			break // 只需要绘制一次
 		} else {
-			// 只填充文字
-			ctx.SetFillColor(canvas.Hex(options.Colors[colorIndex]))
-			ctx.DrawPath(charX, charY, path)
-			ctx.Fill()
+			if colorIndex == -1 { // 跳过空格
+				continue
+			}
+
+			path := paths[pathIndex]
+
+			// 检查路径是否有效（非空）
+			if path == nil {
+				pathIndex++
+				continue
+			}
+
+			// 检查路径是否为空（通过检查其边界来判断）
+			pathBounds := path.Bounds()
+			if pathBounds.W() <= 0 || pathBounds.H() <= 0 {
+				pathIndex++
+				continue
+			}
+
+			// 计算当前字符的位置
+			charX := offsetX + xOffsets[pathIndex] - bounds[pathIndex].X0
+			charY := offsetY - minY
+
+			// 保存当前上下文状态
+			ctx.Push()
+
+			// 如果启用描边，设置描边属性
+			if options.EnableStroke && options.StrokeWidth > 0 {
+				ctx.SetStrokeWidth(options.StrokeWidth)
+				ctx.SetStrokeColor(canvas.Hex(options.StrokeColor))
+				// 设置填充颜色
+				ctx.SetFillColor(canvas.Hex(options.Colors[colorIndex]))
+				// 绘制路径
+				ctx.DrawPath(charX, charY, path)
+				// 同时填充和描边
+				ctx.FillStroke()
+			} else {
+				// 只填充文字
+				ctx.SetFillColor(canvas.Hex(options.Colors[colorIndex]))
+				ctx.DrawPath(charX, charY, path)
+				ctx.Fill()
+			}
+
+			// 恢复上下文状态
+			ctx.Pop()
+
+			pathIndex++
 		}
-
-		// 恢复上下文状态
-		ctx.Pop()
-
-		pathIndex++
 	}
 
 	// 绘制额外的文本

@@ -38,12 +38,16 @@ func TestText2svg(t *testing.T) {
 func TestText2svgColors(t *testing.T) {
 	options := text2svg.Options{
 		// Text:     "Léo",
-		Text:     "JosephineQ",
-		FontPath: "LDRoadsDEMO",
-		FontSize: 230.15,
-		Colors:   []string{"#ca2128", "#dc602c", "#f3b747", "#07954b", "#2179b9", "#21378c"},
-		SavePath: "text2svg_colors.pdf",
-		DPI:      300,
+		Text:         "Benjamin",
+		FontPath:     "Damion-Regular",
+		FontSize:     230.15,
+		Colors:       []string{"none"},
+		SavePath:     "text2svg_colors.svg",
+		DPI:          300,
+		EnableStroke: true,
+		StrokeWidth:  0.1,
+		StrokeColor:  "#000000",
+		RenderMode:   text2svg.RenderModeString,
 	}
 
 	err := text2svg.CanvasConvert(options)
