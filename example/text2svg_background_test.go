@@ -87,7 +87,7 @@ func TestBackgroundWithStroke(t *testing.T) {
 		BorderRadius:          5,
 		Padding:               []float64{9.5, 20},
 		LockWidth:             450,
-		LockHeight:            85,
+		LockHeight:            95,
 		ExtraTexts: []text2svg.ExtraTextInfo{
 			{
 				Text:     "001",
