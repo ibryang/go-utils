@@ -62,14 +62,6 @@ type Options struct {
 	RenderMode            RenderMode      // 渲染模式
 }
 
-// Result 包含转换结果
-type Result struct {
-	Svg    string  // SVG内容
-	Width  float64 // 最终宽度
-	Height float64 // 最终高度
-	Error  error   // 错误信息
-}
-
 // SaveFormat 定义保存格式
 type SaveFormat string
 
