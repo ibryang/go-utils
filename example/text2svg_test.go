@@ -21,7 +21,7 @@ func TestText2svgColors(t *testing.T) {
 		RenderMode:   text2svg.RenderModeChar,
 	}
 
-	err := text2svg.CanvasConvert(options)
+	_, err := text2svg.CanvasConvert(options)
 	if err != nil {
 		t.Fatalf("转换失败: %v", err)
 	}

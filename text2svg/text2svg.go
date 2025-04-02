@@ -1,6 +1,7 @@
 package text2svg
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/ibryang/go-utils/os/file"
@@ -107,20 +108,20 @@ type ExtraTextInfo struct {
 }
 
 // CanvasConvert 转换并保存文件
-func CanvasConvert(options Options) error {
+func CanvasConvert(options Options) (canvas *canvas.Canvas, err error) {
 	// 参数验证
 	if err := validateOptions(&options); err != nil {
-		return err
+		return nil, err
 	}
 
 	// 生成画布
 	c, err := GenerateCanvas(options)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if options.SavePath == "" {
-		return nil
+		return nil, fmt.Errorf("保存路径不能为空")
 	}
 
 	// 如果未指定格式，从文件扩展名获取

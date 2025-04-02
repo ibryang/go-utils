@@ -19,7 +19,7 @@ func TestText2svgWithBackground(t *testing.T) {
 		Padding:         []float64{20},
 	}
 
-	err := text2svg.CanvasConvert(options)
+	_, err := text2svg.CanvasConvert(options)
 	if err != nil {
 		t.Fatalf("转换失败: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestText2svgWithStroke(t *testing.T) {
 		Padding:      []float64{10},
 	}
 
-	err := text2svg.CanvasConvert(options)
+	_, err := text2svg.CanvasConvert(options)
 	if err != nil {
 		t.Fatalf("转换失败: %v", err)
 	}
@@ -63,7 +63,7 @@ func TestText2svgWithBackgroundAndStroke(t *testing.T) {
 		Padding:               []float64{25},
 	}
 
-	err := text2svg.CanvasConvert(options)
+	_, err := text2svg.CanvasConvert(options)
 	if err != nil {
 		t.Fatalf("转换失败: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestBackgroundWithStroke(t *testing.T) {
 		},
 	}
 
-	err := text2svg.CanvasConvert(options)
+	_, err := text2svg.CanvasConvert(options)
 	if err != nil {
 		t.Fatalf("转换失败: %v", err)
 	}
@@ -126,7 +126,7 @@ func TestTransparentBackground(t *testing.T) {
 		Height:                50, // 指定宽度
 	}
 
-	err := text2svg.CanvasConvert(options)
+	_, err := text2svg.CanvasConvert(options)
 	if err != nil {
 		t.Fatalf("转换失败: %v", err)
 	}
@@ -151,7 +151,7 @@ func TestRectangleShape(t *testing.T) {
 		Height:                150, // 指定高度和宽度
 	}
 
-	err := text2svg.CanvasConvert(options)
+	_, err := text2svg.CanvasConvert(options)
 	if err != nil {
 		t.Fatalf("转换失败: %v", err)
 	}
@@ -176,7 +176,8 @@ func TestPaddingFormats(t *testing.T) {
 	singleValueOptions := baseOptions
 	singleValueOptions.Padding = []float64{20}
 	singleValueOptions.SavePath = "text2svg_padding_single.svg"
-	if err := text2svg.CanvasConvert(singleValueOptions); err != nil {
+	_, err := text2svg.CanvasConvert(singleValueOptions)
+	if err != nil {
 		t.Fatalf("单值内边距测试失败: %v", err)
 	}
 
@@ -184,7 +185,8 @@ func TestPaddingFormats(t *testing.T) {
 	twoValueOptions := baseOptions
 	twoValueOptions.Padding = []float64{10, 30}
 	twoValueOptions.SavePath = "text2svg_padding_two.svg"
-	if err := text2svg.CanvasConvert(twoValueOptions); err != nil {
+	_, err = text2svg.CanvasConvert(twoValueOptions)
+	if err != nil {
 		t.Fatalf("双值内边距测试失败: %v", err)
 	}
 
@@ -192,7 +194,8 @@ func TestPaddingFormats(t *testing.T) {
 	threeValueOptions := baseOptions
 	threeValueOptions.Padding = []float64{5, 20, 35}
 	threeValueOptions.SavePath = "text2svg_padding_three.svg"
-	if err := text2svg.CanvasConvert(threeValueOptions); err != nil {
+	_, err = text2svg.CanvasConvert(threeValueOptions)
+	if err != nil {
 		t.Fatalf("三值内边距测试失败: %v", err)
 	}
 
@@ -200,7 +203,8 @@ func TestPaddingFormats(t *testing.T) {
 	fourValueOptions := baseOptions
 	fourValueOptions.Padding = []float64{10, 20, 30, 40}
 	fourValueOptions.SavePath = "text2svg_padding_four.svg"
-	if err := text2svg.CanvasConvert(fourValueOptions); err != nil {
+	_, err = text2svg.CanvasConvert(fourValueOptions)
+	if err != nil {
 		t.Fatalf("四值内边距测试失败: %v", err)
 	}
 }
@@ -225,7 +229,8 @@ func TestLockDimensions(t *testing.T) {
 	lockWidthOptions.Padding = []float64{10}
 	lockWidthOptions.LockWidth = 500
 	lockWidthOptions.SavePath = "text2svg_lock_width.svg"
-	if err := text2svg.CanvasConvert(lockWidthOptions); err != nil {
+	_, err := text2svg.CanvasConvert(lockWidthOptions)
+	if err != nil {
 		t.Fatalf("固定宽度测试失败: %v", err)
 	}
 
@@ -234,7 +239,8 @@ func TestLockDimensions(t *testing.T) {
 	lockHeightOptions.Padding = []float64{10}
 	lockHeightOptions.LockHeight = 200
 	lockHeightOptions.SavePath = "text2svg_lock_height.svg"
-	if err := text2svg.CanvasConvert(lockHeightOptions); err != nil {
+	_, err = text2svg.CanvasConvert(lockHeightOptions)
+	if err != nil {
 		t.Fatalf("固定高度测试失败: %v", err)
 	}
 
@@ -244,7 +250,8 @@ func TestLockDimensions(t *testing.T) {
 	lockBothOptions.LockWidth = 500
 	lockBothOptions.LockHeight = 200
 	lockBothOptions.SavePath = "text2svg_lock_both.svg"
-	if err := text2svg.CanvasConvert(lockBothOptions); err != nil {
+	_, err = text2svg.CanvasConvert(lockBothOptions)
+	if err != nil {
 		t.Fatalf("固定宽高测试失败: %v", err)
 	}
 
@@ -254,7 +261,8 @@ func TestLockDimensions(t *testing.T) {
 	customPaddingOptions.LockWidth = 600
 	customPaddingOptions.LockHeight = 300
 	customPaddingOptions.SavePath = "text2svg_lock_custom_padding.svg"
-	if err := text2svg.CanvasConvert(customPaddingOptions); err != nil {
+	_, err = text2svg.CanvasConvert(customPaddingOptions)
+	if err != nil {
 		t.Fatalf("固定尺寸与自定义内边距测试失败: %v", err)
 	}
 }

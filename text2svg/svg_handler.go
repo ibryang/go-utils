@@ -163,10 +163,10 @@ func createSVGRoundedRect(width, height, radius float64) string {
 }
 
 // handleSVGSave 处理SVG格式保存的特殊逻辑
-func handleSVGSave(c *canvas.Canvas, options *Options, config SaveConfig) error {
+func handleSVGSave(c *canvas.Canvas, options *Options, config SaveConfig) (canvas *canvas.Canvas, err error) {
 	var buf bytes.Buffer
 	if err := c.Write(&buf, renderers.SVG()); err != nil {
-		return fmt.Errorf("渲染SVG失败: %v", err)
+		return nil, fmt.Errorf("渲染SVG失败: %v", err)
 	}
 
 	svg := buf.String()
@@ -221,8 +221,8 @@ func handleSVGSave(c *canvas.Canvas, options *Options, config SaveConfig) error 
 
 	// 保存修改后的SVG
 	if err := SaveToFile(svg, config.Path); err != nil {
-		return fmt.Errorf("保存SVG文件失败: %v", err)
+		return nil, fmt.Errorf("保存SVG文件失败: %v", err)
 	}
 
-	return nil
+	return c, nil
 }

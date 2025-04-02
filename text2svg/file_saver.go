@@ -9,9 +9,9 @@ import (
 )
 
 // saveToFile 保存画布到文件
-func saveToFile(c *canvas.Canvas, config SaveConfig) error {
+func saveToFile(c *canvas.Canvas, config SaveConfig) (canvas *canvas.Canvas, err error) {
 	if config.Path == "" {
-		return fmt.Errorf("保存路径不能为空")
+		return nil, fmt.Errorf("保存路径不能为空")
 	}
 
 	// 设置默认值
@@ -29,29 +29,29 @@ func saveToFile(c *canvas.Canvas, config SaveConfig) error {
 	switch config.Format {
 	case FormatPNG:
 		if err := savePNG(c, config); err != nil {
-			return err
+			return nil, err
 		}
 	case FormatJPEG, FormatJPG:
 		if err := saveJPEG(c, config); err != nil {
-			return err
+			return nil, err
 		}
 	case FormatSVG:
 		if err := c.WriteFile(config.Path, renderers.SVG()); err != nil {
-			return fmt.Errorf("保存SVG文件失败: %v", err)
+			return nil, fmt.Errorf("保存SVG文件失败: %v", err)
 		}
 	case FormatPDF:
 		if err := c.WriteFile(config.Path, renderers.PDF()); err != nil {
-			return fmt.Errorf("保存PDF文件失败: %v", err)
+			return nil, fmt.Errorf("保存PDF文件失败: %v", err)
 		}
 	case FormatTIFF, FormatTIF:
 		if err := c.WriteFile(config.Path, renderers.TIFF()); err != nil {
-			return fmt.Errorf("保存TIFF文件失败: %v", err)
+			return nil, fmt.Errorf("保存TIFF文件失败: %v", err)
 		}
 	default:
-		return fmt.Errorf("不支持的文件格式: %s", config.Format)
+		return nil, fmt.Errorf("不支持的文件格式: %s", config.Format)
 	}
 
-	return nil
+	return c, nil
 }
 
 // savePNG 保存PNG格式

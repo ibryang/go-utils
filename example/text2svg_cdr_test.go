@@ -26,7 +26,7 @@ func TestCdrCompatibleRoundedRect(t *testing.T) {
 		Height:                150,
 	}
 
-	err := text2svg.CanvasConvert(options)
+	_, err := text2svg.CanvasConvert(options)
 	if err != nil {
 		t.Fatalf("生成兼容CDR的SVG失败: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestCdrCompatibleRoundedRect(t *testing.T) {
 	optionsSmallRadius.BorderRadius = 5
 	optionsSmallRadius.SavePath = "text2svg_cdr_small_radius.svg"
 
-	err = text2svg.CanvasConvert(optionsSmallRadius)
+	_, err = text2svg.CanvasConvert(optionsSmallRadius)
 	if err != nil {
 		t.Fatalf("生成小圆角SVG失败: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestCdrCompatibleRoundedRect(t *testing.T) {
 	optionsLargeRadius.BorderRadius = 100 // 大于宽度/高度的一半
 	optionsLargeRadius.SavePath = "text2svg_cdr_large_radius.svg"
 
-	err = text2svg.CanvasConvert(optionsLargeRadius)
+	_, err = text2svg.CanvasConvert(optionsLargeRadius)
 	if err != nil {
 		t.Fatalf("生成大圆角SVG失败: %v", err)
 	}
@@ -73,7 +73,7 @@ func TestCdrCompatibleRoundedRect(t *testing.T) {
 	optionsLocked.LockHeight = 200
 	optionsLocked.SavePath = "text2svg_cdr_locked.svg"
 
-	err = text2svg.CanvasConvert(optionsLocked)
+	_, err = text2svg.CanvasConvert(optionsLocked)
 	if err != nil {
 		t.Fatalf("生成锁定尺寸SVG失败: %v", err)
 	}

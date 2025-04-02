@@ -65,7 +65,7 @@ func TestExtraText(t *testing.T) {
 		},
 	}
 
-	err := text2svg.CanvasConvert(options)
+	_, err := text2svg.CanvasConvert(options)
 	if err != nil {
 		t.Fatalf("生成带额外文本的SVG失败: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestExtraText(t *testing.T) {
 		},
 	}
 
-	err = text2svg.CanvasConvert(optionsMulti)
+	_, err = text2svg.CanvasConvert(optionsMulti)
 	if err != nil {
 		t.Fatalf("生成多文本SVG失败: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestExtraText(t *testing.T) {
 		})
 	}
 
-	err = text2svg.CanvasConvert(optionsGrid)
+	_, err = text2svg.CanvasConvert(optionsGrid)
 	if err != nil {
 		t.Fatalf("生成坐标网格的SVG失败: %v", err)
 	}
