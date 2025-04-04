@@ -10,7 +10,7 @@ func TestText2svgColors(t *testing.T) {
 	options := text2svg.Options{
 		// Text:     "Léo",
 		Text:         "Benjamin",
-		FontPath:     "Arial",
+		FontPath:     "Cookie",
 		FontSize:     230.15,
 		Colors:       []string{"#ff0000", "#00ff00", "#0000ff"},
 		SavePath:     "text2svg_colors.svg",
@@ -18,7 +18,7 @@ func TestText2svgColors(t *testing.T) {
 		EnableStroke: false,
 		StrokeWidth:  0.1,
 		StrokeColor:  "#000000",
-		RenderMode:   text2svg.RenderModeChar,
+		RenderMode:   text2svg.RenderModeString,
 	}
 
 	_, err := text2svg.CanvasConvert(options)
