@@ -232,6 +232,40 @@ func generateCanvasInternal(options Options) (*canvas.Canvas, error) {
 		drawExtraTexts(c, width, height, options)
 	}
 
+	// 应用镜像变换（如果启用）
+	if options.MirrorX || options.MirrorY {
+		// 创建镜像画布
+		mirrorCanvas := canvas.New(width, height)
+
+		// 计算镜像变换矩阵
+		var mirrorMatrix canvas.Matrix
+		if options.MirrorX && options.MirrorY {
+			// X和Y轴都镜像
+			mirrorMatrix = canvas.Matrix{
+				{-1, 0, width},
+				{0, -1, height},
+			}
+		} else if options.MirrorX {
+			// 只镜像X轴
+			mirrorMatrix = canvas.Matrix{
+				{-1, 0, width},
+				{0, 1, 0},
+			}
+		} else {
+			// 只镜像Y轴
+			mirrorMatrix = canvas.Matrix{
+				{1, 0, 0},
+				{0, -1, height},
+			}
+		}
+
+		// 将原画布渲染到镜像画布上
+		c.RenderViewTo(mirrorCanvas, mirrorMatrix)
+
+		// 返回镜像后的画布
+		return mirrorCanvas, nil
+	}
+
 	return c, nil
 }
 

@@ -23,21 +23,24 @@ const (
 
 // MultiLineOptions 多行文本配置选项
 type MultiLineOptions struct {
-	LineSpacing     float64       // 行间距, 默认为2
-	Alignment       AlignmentMode // 对齐方式: 左对齐、居中对齐、右对齐
-	Width           float64       // 固定宽度
-	Height          float64       // 固定高度
-	Padding         []float64     // 内边距 [上, 右, 下, 左]
-	MarginPadding   bool          // 是否启用外边距
-	EnableBorder    bool          // 是否启用边框
-	BorderColor     string        // 边框颜色
-	BorderWidth     float64       // 边框宽度
-	BorderRadius    float64       // 边框圆角半径
-	BackgroundColor string        // 背景颜色
-	SavePath        string        // 保存路径
-	DPI             float64       // 保存DPI
-	DPMM            float64       // 保存DPMM
-	Quality         int           // 保存质量
+	LineSpacing     float64         // 行间距, 默认为2
+	Alignment       AlignmentMode   // 对齐方式: 左对齐、居中对齐、右对齐
+	Width           float64         // 固定宽度
+	Height          float64         // 固定高度
+	Padding         []float64       // 内边距 [上, 右, 下, 左]
+	MarginPadding   bool            // 是否启用外边距
+	EnableBorder    bool            // 是否启用边框
+	BorderColor     string          // 边框颜色
+	BorderWidth     float64         // 边框宽度
+	BorderRadius    float64         // 边框圆角半径
+	BackgroundColor string          // 背景颜色
+	SavePath        string          // 保存路径
+	DPI             float64         // 保存DPI
+	DPMM            float64         // 保存DPMM
+	Quality         int             // 保存质量
+	MirrorX         bool            // X轴镜像
+	MirrorY         bool            // Y轴镜像
+	ExtraTexts      []ExtraTextInfo // 额外的文本信息列表
 }
 
 // CanvasConvertMultipeLine 处理多行文本
@@ -344,6 +347,47 @@ func CanvasConvertMultipeLine(files []string, options *MultiLineOptions) (c *can
 		{scale, 0, offsetX},
 		{0, scale, offsetY},
 	})
+
+	// 应用镜像变换（如果启用）
+	if options != nil && (options.MirrorX || options.MirrorY) {
+		// 创建镜像画布
+		mirrorCanvas := canvas.New(cw, ch)
+
+		// 计算镜像变换矩阵
+		var mirrorMatrix canvas.Matrix
+		if options.MirrorX && options.MirrorY {
+			// X和Y轴都镜像
+			mirrorMatrix = canvas.Matrix{
+				{-1, 0, cw},
+				{0, -1, ch},
+			}
+		} else if options.MirrorX {
+			// 只镜像X轴
+			mirrorMatrix = canvas.Matrix{
+				{-1, 0, cw},
+				{0, 1, 0},
+			}
+		} else {
+			// 只镜像Y轴
+			mirrorMatrix = canvas.Matrix{
+				{1, 0, 0},
+				{0, -1, ch},
+			}
+		}
+
+		// 将newCanvas渲染到镜像画布上
+		newCanvas.RenderViewTo(mirrorCanvas, mirrorMatrix)
+
+		// 用镜像画布替换原画布
+		newCanvas = mirrorCanvas
+	}
+
+	// 绘制额外的文本（如果有）
+	if options != nil && len(options.ExtraTexts) > 0 {
+		drawExtraTexts(newCanvas, cw, ch, Options{
+			ExtraTexts: options.ExtraTexts,
+		})
+	}
 
 	// 如果设置了保存路径，保存画布
 	if options != nil && options.SavePath != "" {

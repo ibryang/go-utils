@@ -61,6 +61,8 @@ type Options struct {
 	LockHeight            float64         // 锁定最终高度（如果设置，将动态调整垂直内边距）
 	ExtraTexts            []ExtraTextInfo // 额外的文本信息列表
 	RenderMode            RenderMode      // 渲染模式
+	MirrorX               bool            // X轴镜像
+	MirrorY               bool            // Y轴镜像
 }
 
 // SaveFormat 定义保存格式

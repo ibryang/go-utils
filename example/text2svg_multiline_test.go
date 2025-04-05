@@ -10,23 +10,36 @@ import (
 
 func TestMultiLineText(t *testing.T) {
 	// 首先创建几个SVG文件用于测试
-	// temp1 := createTempSVGFile(t, "Abcdefg", 36, "#ff0000")
-	// temp2 := createTempSVGFile(t, "Abedefsffsgga", 36, "#00ff00")
-	// temp3 := createTempSVGFile(t, "dddds", 36, "#0000ff")
-	// defer os.Remove(temp1)
-	// defer os.Remove(temp2)
-	// defer os.Remove(temp3)
+	temp1 := createTempSVGFile(t, "Abcdefg", 36, "#ff0000")
+	temp2 := createTempSVGFile(t, "Abedefsffsgga", 36, "#00ff00")
+	temp3 := createTempSVGFile(t, "dddds", 36, "#0000ff")
+	defer os.Remove(temp1)
+	defer os.Remove(temp2)
+	defer os.Remove(temp3)
 
 	files := []string{
-		"/Users/ibryang/Desktop/demo/worker/manager/test_kf/车贴/pdf原图/YT006-1.svg",
-		"/Users/ibryang/Desktop/demo/worker/manager/test_kf/车贴/pdf原图/YT006-2.svg",
+		temp1,
+		temp2,
+		temp3,
 	}
+
+	// files := []string{
+	// files := []string{
+	// 	"/Users/ibryang/Desktop/demo/worker/manager/test_kf/车贴/pdf原图/YT006-1.svg",
+	// 	"/Users/ibryang/Desktop/demo/worker/manager/test_kf/车贴/pdf原图/YT006-2.svg",
+	// }
 
 	// 测试不同对齐方式
 	// testAlignments(t, files)
 
 	// // 测试固定尺寸
-	testFixedSize(t, files)
+	// testFixedSize(t, files)
+
+	// 测试镜像功能
+	testMirror(t, files)
+
+	// 测试额外文本功能
+	testExtraTexts(t, files)
 
 	// // 测试最大尺寸约束
 	// testMaxSize(t, files)
@@ -237,5 +250,116 @@ func testBorderAndBackground(t *testing.T, files []string) {
 	_, err = text2svg.CanvasConvertMultipeLine(files, pngOptions)
 	if err != nil {
 		t.Fatalf("PNG导出测试失败: %v", err)
+	}
+}
+
+// 测试镜像功能
+func testMirror(t *testing.T, files []string) {
+	// 水平镜像
+	mirrorXOptions := &text2svg.MultiLineOptions{
+		LineSpacing:  5,
+		Alignment:    text2svg.AlignCenter,
+		Width:        400,
+		Padding:      []float64{10, 10, 10, 10},
+		SavePath:     "multiline_mirror_x.pdf",
+		EnableBorder: true,
+		BorderColor:  "#ff0000",
+		BorderWidth:  2,
+		MirrorX:      true,
+	}
+	_, err := text2svg.CanvasConvertMultipeLine(files, mirrorXOptions)
+	if err != nil {
+		t.Fatalf("水平镜像测试失败: %v", err)
+	}
+
+	// 垂直镜像
+	mirrorYOptions := &text2svg.MultiLineOptions{
+		LineSpacing:  5,
+		Alignment:    text2svg.AlignCenter,
+		Width:        400,
+		Padding:      []float64{10, 10, 10, 10},
+		SavePath:     "multiline_mirror_y.pdf",
+		EnableBorder: true,
+		BorderColor:  "#0000ff",
+		BorderWidth:  2,
+		MirrorY:      true,
+	}
+	_, err = text2svg.CanvasConvertMultipeLine(files, mirrorYOptions)
+	if err != nil {
+		t.Fatalf("垂直镜像测试失败: %v", err)
+	}
+
+	// 双向镜像
+	mirrorBothOptions := &text2svg.MultiLineOptions{
+		LineSpacing:  5,
+		Alignment:    text2svg.AlignCenter,
+		Width:        400,
+		Padding:      []float64{10, 10, 10, 10},
+		SavePath:     "multiline_mirror_both.pdf",
+		EnableBorder: true,
+		BorderColor:  "#00ff00",
+		BorderWidth:  2,
+		MirrorX:      true,
+		MirrorY:      true,
+	}
+	_, err = text2svg.CanvasConvertMultipeLine(files, mirrorBothOptions)
+	if err != nil {
+		t.Fatalf("双向镜像测试失败: %v", err)
+	}
+}
+
+// 测试额外文本
+func testExtraTexts(t *testing.T, files []string) {
+	// 创建带有额外文本的多行文本
+	extraTextsOptions := &text2svg.MultiLineOptions{
+		LineSpacing:  5,
+		Alignment:    text2svg.AlignCenter,
+		Width:        400,
+		Padding:      []float64{10, 10, 10, 10},
+		SavePath:     "multiline_extra_texts.pdf",
+		EnableBorder: true,
+		BorderColor:  "#ff0000",
+		BorderWidth:  2,
+		ExtraTexts: []text2svg.ExtraTextInfo{
+			{
+				Text:     "Hello, Gophers!1111",
+				FontPath: "Arial",
+				FontSize: 16,
+				Color:    "#FF0000",
+				X:        200, // 居中
+				Y:        390, // 靠近顶部
+				Rotate:   0,
+				OffsetX:  0,
+				OffsetY:  0,
+			},
+			{
+				Text:     "Hello, Gophers!2222",
+				FontPath: "Arial",
+				FontSize: 16,
+				Color:    "#0000FF",
+				X:        200, // 居中
+				Y:        10,  // 靠近底部
+				Rotate:   0,
+				OffsetX:  0,
+				OffsetY:  0,
+			},
+			{
+				Text:        "Hello, Gophers!3333",
+				FontPath:    "Arial",
+				FontSize:    18,
+				Color:       "#00FF00",
+				X:           200, // 居中
+				Y:           200, // 中间
+				Rotate:      45,  // 45度旋转
+				StrokeText:  true,
+				StrokeWidth: 0.5,
+				StrokeColor: "#000000",
+			},
+		},
+	}
+
+	_, err := text2svg.CanvasConvertMultipeLine(files, extraTextsOptions)
+	if err != nil {
+		t.Fatalf("额外文本测试失败: %v", err)
 	}
 }
