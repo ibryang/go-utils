@@ -20,6 +20,9 @@ func GenerateBaseText(option common.TextOption) (*canvas.Canvas, error) {
 	var fontColor []color.RGBA
 	var strokeColor color.RGBA = canvas.Black
 	var strokeWidth float64 = option.StrokeWidth
+	if option.RenderMode == 0 {
+		option.RenderMode = common.RenderString
+	}
 	if option.FontColor != nil {
 		if color, ok := option.FontColor.(string); ok {
 			if c, ok := common.ColorMap[color]; ok {
@@ -59,40 +62,59 @@ func GenerateBaseText(option common.TextOption) (*canvas.Canvas, error) {
 	maxX, maxY := math.Inf(-1), math.Inf(-1)
 
 	// 临时保存每个字符的路径和前进宽度
-	charPaths := make([]canvas.Path, 0, len(option.Text))
-	advances := make([]float64, 0, len(option.Text))
+	var charPaths []canvas.Path
+	var advances []float64
+	var exactWidth float64
+	var exactHeight float64
 
 	// 计算整个字符串的确切边界框
-	xPos := 0.0
-	colorCount := 0
+	var xPos float64
 	var colorIndices []int
-	for _, char := range option.Text {
-		path, advance, err := fontface.ToPath(string(char))
+	if option.RenderMode == common.RenderChar {
+		colorCount := 0
+		for _, char := range option.Text {
+			path, advance, err := fontface.ToPath(string(char))
+			if err != nil {
+				return nil, err
+			}
+
+			bounds := path.Bounds()
+			minX = math.Min(minX, bounds.X0+xPos)
+			minY = math.Min(minY, bounds.Y0)
+			maxX = math.Max(maxX, bounds.X1+xPos)
+			maxY = math.Max(maxY, bounds.Y1)
+
+			charPaths = append(charPaths, *path)
+			advances = append(advances, advance)
+			xPos += advance
+			if char == ' ' {
+				colorIndices = append(colorIndices, -1)
+				continue
+			}
+			colorIndices = append(colorIndices, colorCount%len(fontColor))
+			colorCount++
+		}
+
+		// 计算精确的宽度和高度
+		exactWidth = maxX - minX
+		exactHeight = maxY - minY
+	}
+	var path *canvas.Path
+	if option.RenderMode == common.RenderString {
+		p, _, err := fontface.ToPath(option.Text)
 		if err != nil {
 			return nil, err
 		}
-
-		bounds := path.Bounds()
-		minX = math.Min(minX, bounds.X0+xPos)
-		minY = math.Min(minY, bounds.Y0)
-		maxX = math.Max(maxX, bounds.X1+xPos)
-		maxY = math.Max(maxY, bounds.Y1)
-
-		charPaths = append(charPaths, *path)
-		advances = append(advances, advance)
-		xPos += advance
-		if char == ' ' {
-			colorIndices = append(colorIndices, -1)
-			continue
-		}
-		colorIndices = append(colorIndices, colorCount%len(fontColor))
-		colorCount++
+		p = p.Transform(canvas.Matrix{
+			{1, 0, -p.Bounds().X0},
+			{0, 1, 0},
+		})
+		exactWidth = p.Bounds().W()
+		minY = p.Bounds().Y0
+		maxY = p.Bounds().Y1
+		exactHeight = maxY - minY
+		path = p
 	}
-
-	// 计算精确的宽度和高度
-	exactWidth := maxX - minX
-	exactHeight := maxY - minY
-
 	// 创建一个尺寸刚好容纳所有字符的画布
 	textCanvas := canvas.New(exactWidth, exactHeight)
 	textCtx := canvas.NewContext(textCanvas)
@@ -104,24 +126,35 @@ func GenerateBaseText(option common.TextOption) (*canvas.Canvas, error) {
 	// 绘制每个字符
 	xPos = -minX // 调整起始位置，确保所有内容都可见
 	yPos := -minY
+	if option.RenderMode == common.RenderChar {
+		for i, path := range charPaths {
+			// 将路径绘制到画布上
+			if colorIndices[i] == -1 {
+				textCtx.SetFillColor(canvas.Transparent)
+			} else {
+				textCtx.SetFillColor(fontColor[colorIndices[i]])
+			}
+			if strokeWidth > 0 {
+				textCtx.SetStrokeColor(strokeColor)
+				textCtx.SetStrokeWidth(strokeWidth)
+				textCtx.Stroke()
+			}
+			textCtx.DrawPath(xPos, yPos, &path)
+			textCtx.Fill()
 
-	for i, path := range charPaths {
-		// 将路径绘制到画布上
-		if colorIndices[i] == -1 {
-			textCtx.SetFillColor(canvas.Transparent)
-		} else {
-			textCtx.SetFillColor(fontColor[colorIndices[i]])
+			// 更新x位置
+			xPos += advances[i]
 		}
+	}
+	if option.RenderMode == common.RenderString {
+		textCtx.SetFillColor(fontColor[0])
 		if strokeWidth > 0 {
 			textCtx.SetStrokeColor(strokeColor)
 			textCtx.SetStrokeWidth(strokeWidth)
 			textCtx.Stroke()
 		}
-		textCtx.DrawPath(xPos, yPos, &path)
+		textCtx.DrawPath(0, -minY, path)
 		textCtx.Fill()
-
-		// 更新x位置
-		xPos += advances[i]
 	}
 	if len(option.ExtraText) > 0 {
 		for _, extOption := range option.ExtraText {

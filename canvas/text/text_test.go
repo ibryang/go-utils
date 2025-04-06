@@ -22,17 +22,17 @@ func TestGenerateTextSvg(t *testing.T) {
 		ExtraText: []common.ExtraTextOption{
 			{
 				X:      10,
-				Y:      0,
+				Y:      1,
 				Align:  common.TextAlignCenter,
 				VAlign: common.TextVAlignTop,
 				TextOption: common.TextOption{
-					Text:      "Extra Text",
-					FontPath:  "Cookie",
+					Text:      "001",
 					FontSize:  10,
 					FontColor: "blue",
 				},
 			},
 		},
+		RenderMode: common.RenderString,
 	}
 
 	canvas, err := GenerateBaseText(option)

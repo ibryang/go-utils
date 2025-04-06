@@ -3,12 +3,28 @@ package font
 import (
 	"fmt"
 	"os"
+	"runtime"
 
 	"github.com/ibryang/go-utils/os/file"
 	"github.com/tdewolff/canvas"
 )
 
 func LoadFont(path string) (*canvas.Font, error) {
+	if path == "" {
+		// 加载系统默认字体
+		if runtime.GOOS == "windows" {
+			font, err := LoadFontFamily("Microsoft YaHei")
+			if err != nil {
+				return nil, fmt.Errorf("加载字体失败: %s", err)
+			}
+			return font, nil
+		}
+		font, err := LoadFontFamily("Arial")
+		if err != nil {
+			return nil, fmt.Errorf("加载字体失败: %s", err)
+		}
+		return font, nil
+	}
 	if !isExist(path) {
 		font, err := LoadFontFamily(path)
 		if err != nil {
