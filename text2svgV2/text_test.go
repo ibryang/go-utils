@@ -39,7 +39,8 @@ func TestGenerateTextSvg(t *testing.T) {
 	}
 
 	// 保存为SVG文件
-	renderers.Write("text_test.svg", canvas)
+	// renderers.Write("text_test.svg", canvas)
+	GroupSvg(canvas, "text_test.svg")
 }
 
 func TestGenerateTextLine(t *testing.T) {
@@ -85,7 +86,8 @@ func TestGenerateTextLine(t *testing.T) {
 	}
 
 	// 保存为PDF文件
-	renderers.Write("text_line_test.pdf", canvas)
+	renderers.Write("text_line_test.svg", canvas)
+	GroupSvg(canvas, "text_line_test2.svg")
 }
 
 func TestGenerateCanvas(t *testing.T) {

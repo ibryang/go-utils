@@ -1,10 +1,14 @@
 package text2svgV2
 
 import (
+	"bytes"
 	"errors"
 	"math"
+	"os"
+	"strings"
 
 	"github.com/tdewolff/canvas"
+	"github.com/tdewolff/canvas/renderers"
 )
 
 // GenerateMultipleLinesText 生成多行文本
@@ -127,4 +131,14 @@ func GenerateMultipleLinesText(option TextLineOption) (*canvas.Canvas, error) {
 	finalCanvas = ReverseCanvas(finalCanvas, option.ReverseX, option.ReverseY)
 
 	return finalCanvas, nil
+}
+
+func GroupSvg(c *canvas.Canvas, output string) *canvas.Canvas {
+	var stringWriter bytes.Buffer
+	c.Write(&stringWriter, renderers.SVG())
+	svg := stringWriter.String()
+	svg = strings.Replace(svg, `xlink">`, `xlink"><g>`, -1)
+	svg = strings.Replace(svg, `</svg>`, `</g></svg>`, -1)
+	os.WriteFile(output, []byte(svg), 0644)
+	return c
 }
