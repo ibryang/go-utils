@@ -1,38 +1,36 @@
-package text
+package text2svgV2
 
 import (
 	"testing"
 
 	"github.com/tdewolff/canvas/renderers"
-
-	"github.com/ibryang/go-utils/canvas/common"
 )
 
 func TestGenerateTextSvg(t *testing.T) {
-	option := common.TextOption{
+	option := TextOption{
 		Text:        "Benjamin",
 		FontPath:    "Cookie",
 		FontSize:    100,
 		FontColor:   "red",
 		StrokeColor: "blue",
 		StrokeWidth: .1,
-		BaseOption: common.BaseOption{
+		BaseOption: BaseOption{
 			Width: 200,
 		},
-		ExtraText: []common.ExtraTextOption{
+		ExtraText: []ExtraTextOption{
 			{
 				X:      10,
 				Y:      1,
-				Align:  common.TextAlignCenter,
-				VAlign: common.TextVAlignTop,
-				TextOption: common.TextOption{
+				Align:  TextAlignCenter,
+				VAlign: TextVAlignTop,
+				TextOption: TextOption{
 					Text:      "001",
 					FontSize:  10,
 					FontColor: "blue",
 				},
 			},
 		},
-		RenderMode: common.RenderString,
+		RenderMode: RenderString,
 	}
 
 	canvas, err := GenerateBaseText(option)
@@ -45,8 +43,8 @@ func TestGenerateTextSvg(t *testing.T) {
 }
 
 func TestGenerateTextLine(t *testing.T) {
-	option := common.TextLineOption{
-		TextList: []common.TextOption{
+	option := TextLineOption{
+		TextList: []TextOption{
 			{
 				Text:      "Beijing",
 				FontPath:  "Cookie",
@@ -67,12 +65,12 @@ func TestGenerateTextLine(t *testing.T) {
 			},
 		},
 		LineGap: 1,
-		Align:   common.TextAlignCenter,
-		BaseOption: common.BaseOption{
+		Align:   TextAlignCenter,
+		BaseOption: BaseOption{
 			ReverseX: true,
 			ReverseY: true,
 		},
-		RectOption: []common.RectOption{
+		RectOption: []RectOption{
 			{
 				StrokeColor: "red",
 				StrokeWidth: 0.1,
@@ -91,12 +89,12 @@ func TestGenerateTextLine(t *testing.T) {
 }
 
 func TestGenerateCanvas(t *testing.T) {
-	textOption := common.TextOption{
+	textOption := TextOption{
 		Text:      "Benjamin222",
 		FontPath:  "Cookie",
 		FontSize:  100,
 		FontColor: "red",
-		BaseOption: common.BaseOption{
+		BaseOption: BaseOption{
 			Width: 200,
 		},
 	}
@@ -106,28 +104,28 @@ func TestGenerateCanvas(t *testing.T) {
 		t.Fatalf("生成文本SVG失败: %v", err)
 	}
 
-	option := common.CanvasOption{
-		FileList: []common.CanvasItem{
+	option := CanvasOption{
+		FileList: []CanvasItem{
 			{
 				File:   "text_test.svg",
 				Width:  100,
-				VAlign: common.TextVAlignCenter,
+				VAlign: TextVAlignCenter,
 			},
 		},
-		CanvasList: []common.CanvasItem{
+		CanvasList: []CanvasItem{
 			{
 				Canvas: textCanvas,
 				Width:  100,
-				Align:  common.TextAlignCenter,
+				Align:  TextAlignCenter,
 			},
 		},
-		BaseOption: common.BaseOption{
+		BaseOption: BaseOption{
 			Width:    300,
 			Height:   300,
 			ReverseX: true,
 			ReverseY: true,
 		},
-		RectOption: []common.RectOption{
+		RectOption: []RectOption{
 			{
 				StrokeColor: "red",
 				StrokeWidth: .1,

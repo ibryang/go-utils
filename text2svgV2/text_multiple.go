@@ -1,22 +1,20 @@
-package text
+package text2svgV2
 
 import (
 	"errors"
 	"math"
 
-	"github.com/ibryang/go-utils/canvas/common"
-	"github.com/ibryang/go-utils/canvas/rect"
 	"github.com/tdewolff/canvas"
 )
 
 // GenerateMultipleLinesText 生成多行文本
-func GenerateMultipleLinesText(option common.TextLineOption) (*canvas.Canvas, error) {
+func GenerateMultipleLinesText(option TextLineOption) (*canvas.Canvas, error) {
 	if len(option.TextList) == 0 {
 		return nil, errors.New("text list is required")
 	}
 
 	// 列表反转
-	textList := []common.TextOption{}
+	textList := []TextOption{}
 	for i := len(option.TextList) - 1; i >= 0; i-- {
 		textList = append(textList, option.TextList[i])
 	}
@@ -54,9 +52,9 @@ func GenerateMultipleLinesText(option common.TextLineOption) (*canvas.Canvas, er
 		// 根据对齐方式计算x位置
 		xPos := 0.0 // 默认左对齐
 
-		if option.Align == common.TextAlignCenter {
+		if option.Align == TextAlignCenter {
 			xPos = (contentWidth - textCanvas.W) / 2
-		} else if option.Align == common.TextAlignRight {
+		} else if option.Align == TextAlignRight {
 			xPos = contentWidth - textCanvas.W
 		}
 
@@ -108,7 +106,7 @@ func GenerateMultipleLinesText(option common.TextLineOption) (*canvas.Canvas, er
 
 	// 绘制矩形
 	for _, rectOption := range option.RectOption {
-		rect.DrawRect(ctx, rectOption)
+		DrawRect(ctx, rectOption)
 	}
 
 	// 应用内边距

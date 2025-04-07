@@ -1,18 +1,15 @@
-package text
+package text2svgV2
 
 import (
 	"errors"
 	"image/color"
 	"math"
 
-	"github.com/ibryang/go-utils/canvas/common"
-	"github.com/ibryang/go-utils/canvas/font"
-	"github.com/ibryang/go-utils/canvas/rect"
 	"github.com/tdewolff/canvas"
 )
 
 // GenerateBaseText 生成基础文本
-func GenerateBaseText(option common.TextOption) (*canvas.Canvas, error) {
+func GenerateBaseText(option TextOption) (*canvas.Canvas, error) {
 	if option.Text == "" {
 		return nil, errors.New("text is required")
 	}
@@ -21,11 +18,11 @@ func GenerateBaseText(option common.TextOption) (*canvas.Canvas, error) {
 	var strokeColor color.RGBA = canvas.Black
 	var strokeWidth float64 = option.StrokeWidth
 	if option.RenderMode == 0 {
-		option.RenderMode = common.RenderString
+		option.RenderMode = RenderString
 	}
 	if option.FontColor != nil {
 		if color, ok := option.FontColor.(string); ok {
-			if c, ok := common.ColorMap[color]; ok {
+			if c, ok := ColorMap[color]; ok {
 				fontColor = append(fontColor, c)
 			} else {
 				fontColor = append(fontColor, canvas.Hex(color))
@@ -33,7 +30,7 @@ func GenerateBaseText(option common.TextOption) (*canvas.Canvas, error) {
 		}
 		if color, ok := option.FontColor.([]string); ok {
 			for _, c := range color {
-				if v, ok := common.ColorMap[c]; ok {
+				if v, ok := ColorMap[c]; ok {
 					fontColor = append(fontColor, v)
 				} else {
 					fontColor = append(fontColor, canvas.Hex(c))
@@ -43,7 +40,7 @@ func GenerateBaseText(option common.TextOption) (*canvas.Canvas, error) {
 	}
 	if option.StrokeColor != nil {
 		if color, ok := option.StrokeColor.(string); ok {
-			if c, ok := common.ColorMap[color]; ok {
+			if c, ok := ColorMap[color]; ok {
 				strokeColor = c
 			} else {
 				strokeColor = canvas.Hex(color)
@@ -51,7 +48,7 @@ func GenerateBaseText(option common.TextOption) (*canvas.Canvas, error) {
 		}
 	}
 
-	font, err := font.LoadFont(option.FontPath)
+	font, err := LoadFont(option.FontPath)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +67,7 @@ func GenerateBaseText(option common.TextOption) (*canvas.Canvas, error) {
 	// 计算整个字符串的确切边界框
 	var xPos float64
 	var colorIndices []int
-	if option.RenderMode == common.RenderChar {
+	if option.RenderMode == RenderChar {
 		colorCount := 0
 		for _, char := range option.Text {
 			path, advance, err := fontface.ToPath(string(char))
@@ -100,7 +97,7 @@ func GenerateBaseText(option common.TextOption) (*canvas.Canvas, error) {
 		exactHeight = maxY - minY
 	}
 	var path *canvas.Path
-	if option.RenderMode == common.RenderString {
+	if option.RenderMode == RenderString {
 		p, _, err := fontface.ToPath(option.Text)
 		if err != nil {
 			return nil, err
@@ -120,13 +117,13 @@ func GenerateBaseText(option common.TextOption) (*canvas.Canvas, error) {
 	textCtx := canvas.NewContext(textCanvas)
 
 	if option.RectOption != nil {
-		rect.DrawRect(textCtx, *option.RectOption)
+		DrawRect(textCtx, *option.RectOption)
 	}
 
 	// 绘制每个字符
 	xPos = -minX // 调整起始位置，确保所有内容都可见
 	yPos := -minY
-	if option.RenderMode == common.RenderChar {
+	if option.RenderMode == RenderChar {
 		for i, path := range charPaths {
 			// 将路径绘制到画布上
 			if colorIndices[i] == -1 {
@@ -146,7 +143,7 @@ func GenerateBaseText(option common.TextOption) (*canvas.Canvas, error) {
 			xPos += advances[i]
 		}
 	}
-	if option.RenderMode == common.RenderString {
+	if option.RenderMode == RenderString {
 		textCtx.SetFillColor(fontColor[0])
 		if strokeWidth > 0 {
 			textCtx.SetStrokeColor(strokeColor)
@@ -213,26 +210,26 @@ func ReverseCanvas(c *canvas.Canvas, reversX, reversY bool) *canvas.Canvas {
 	return c
 }
 
-func DrawExtraText(c *canvas.Context, extOption common.ExtraTextOption) {
+func DrawExtraText(c *canvas.Context, extOption ExtraTextOption) {
 	textCanvas, err := GenerateBaseText(extOption.TextOption)
 	if err != nil {
 		return
 	}
 	offsetX := 0.0
 	offsetY := 0.0
-	if extOption.Align == common.TextAlignCenter {
+	if extOption.Align == TextAlignCenter {
 		offsetX = (c.Width() - textCanvas.W) / 2
-	} else if extOption.Align == common.TextAlignRight {
+	} else if extOption.Align == TextAlignRight {
 		offsetX = c.Width() - textCanvas.W
-	} else if extOption.Align == common.TextAlignLeft {
+	} else if extOption.Align == TextAlignLeft {
 		offsetX = 0
 	}
 
-	if extOption.VAlign == common.TextVAlignCenter {
+	if extOption.VAlign == TextVAlignCenter {
 		offsetY = (c.Height() - textCanvas.H) / 2
-	} else if extOption.VAlign == common.TextVAlignBottom {
+	} else if extOption.VAlign == TextVAlignBottom {
 		offsetY = c.Height() - textCanvas.H
-	} else if extOption.VAlign == common.TextVAlignTop {
+	} else if extOption.VAlign == TextVAlignTop {
 		offsetY = 0
 	}
 

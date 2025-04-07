@@ -1,9 +1,8 @@
-package rect
+package text2svgV2
 
 import (
 	"fmt"
 
-	"github.com/ibryang/go-utils/canvas/common"
 	"github.com/tdewolff/canvas"
 )
 
@@ -43,7 +42,7 @@ func GenerateRoundedRectPath(width, height, radius float64) *canvas.Path {
 }
 
 // DrawRect 在上下文中绘制矩形
-func DrawRect(ctx *canvas.Context, rectOption common.RectOption) {
+func DrawRect(ctx *canvas.Context, rectOption RectOption) {
 	// 处理矩形宽高
 	if rectOption.Width <= 0 {
 		rectOption.Width = ctx.Width()
@@ -56,7 +55,7 @@ func DrawRect(ctx *canvas.Context, rectOption common.RectOption) {
 	// 设置背景色
 	bgColor := canvas.Transparent
 	if rectOption.BgColor != "" {
-		if color, ok := common.ColorMap[rectOption.BgColor]; ok {
+		if color, ok := ColorMap[rectOption.BgColor]; ok {
 			bgColor = color
 		} else {
 			bgColor = canvas.Hex(rectOption.BgColor)
@@ -77,7 +76,7 @@ func DrawRect(ctx *canvas.Context, rectOption common.RectOption) {
 	if rectOption.StrokeWidth > 0 {
 		var strokeColor = canvas.Black
 		if rectOption.StrokeColor != "" {
-			if color, ok := common.ColorMap[rectOption.StrokeColor]; ok {
+			if color, ok := ColorMap[rectOption.StrokeColor]; ok {
 				strokeColor = color
 			} else {
 				strokeColor = canvas.Hex(rectOption.StrokeColor)

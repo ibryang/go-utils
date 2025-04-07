@@ -1,4 +1,4 @@
-package font
+package text2svgV2
 
 import (
 	"fmt"

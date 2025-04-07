@@ -1,4 +1,4 @@
-package common
+package text2svgV2
 
 import (
 	"image/color"

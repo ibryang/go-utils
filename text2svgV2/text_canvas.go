@@ -1,19 +1,17 @@
-package text
+package text2svgV2
 
 import (
 	"os"
 
-	"github.com/ibryang/go-utils/canvas/common"
-	"github.com/ibryang/go-utils/canvas/rect"
 	"github.com/tdewolff/canvas"
 )
 
 // GenerateCanvasText 生成画布
-func GenerateCanvasText(option common.CanvasOption) (*canvas.Canvas, error) {
+func GenerateCanvasText(option CanvasOption) (*canvas.Canvas, error) {
 	c := canvas.New(option.Width, option.Height)
 	ctx := canvas.NewContext(c)
 	for _, rectOption := range option.RectOption {
-		rect.DrawRect(ctx, rectOption)
+		DrawRect(ctx, rectOption)
 	}
 	ctx.SetCoordSystem(canvas.CartesianIV)
 
@@ -58,20 +56,20 @@ func GenerateCanvasText(option common.CanvasOption) (*canvas.Canvas, error) {
 
 		var x, y float64
 		// 计算对齐方式
-		if canvasItem.Align == common.TextAlignLeft {
+		if canvasItem.Align == TextAlignLeft {
 			x = 0
-		} else if canvasItem.Align == common.TextAlignCenter {
+		} else if canvasItem.Align == TextAlignCenter {
 			x = (c.W - canvasItem.Width) / 2
-		} else if canvasItem.Align == common.TextAlignRight {
+		} else if canvasItem.Align == TextAlignRight {
 			x = c.W - canvasItem.Width
 		}
 
 		// 计算垂直对齐方式
-		if canvasItem.VAlign == common.TextVAlignTop {
+		if canvasItem.VAlign == TextVAlignTop {
 			y = 0
-		} else if canvasItem.VAlign == common.TextVAlignCenter {
+		} else if canvasItem.VAlign == TextVAlignCenter {
 			y = (c.H - canvasItem.Height) / 2
-		} else if canvasItem.VAlign == common.TextVAlignBottom {
+		} else if canvasItem.VAlign == TextVAlignBottom {
 			y = c.H - canvasItem.Height
 		}
 
@@ -100,7 +98,7 @@ func GenerateCanvasText(option common.CanvasOption) (*canvas.Canvas, error) {
 	return c, nil
 }
 
-func loadFileCanvasItem(option *common.CanvasOption) error {
+func loadFileCanvasItem(option *CanvasOption) error {
 	for _, file := range option.FileList {
 		svgFile, err := os.Open(file.File)
 		if err != nil {
@@ -114,7 +112,7 @@ func loadFileCanvasItem(option *common.CanvasOption) error {
 		}
 		svgFile.Close()
 
-		option.CanvasList = append(option.CanvasList, common.CanvasItem{
+		option.CanvasList = append(option.CanvasList, CanvasItem{
 			Canvas: svgCanvas,
 			Align:  file.Align,
 			VAlign: file.VAlign,
