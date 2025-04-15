@@ -76,32 +76,109 @@ func GenerateMultipleLinesText(option TextLineOption) (*canvas.Canvas, error) {
 	scaleX := 1.0
 	scaleY := 1.0
 
+	// 计算可用内容区域（减去padding）
+	availableWidth := option.Width - option.Padding[1] - option.Padding[3]
+	availableHeight := option.Height - option.Padding[0] - option.Padding[2]
+
 	if option.Width == 0 && option.Height == 0 {
 		// 保持原始尺寸
 	} else if option.Width > 0 && option.Height > 0 {
-		// 指定宽高
-		scaleX = option.Width / c.W
-		scaleY = option.Height / c.H
-		c.W = option.Width
-		c.H = option.Height
+		// 计算考虑内边距后的缩放比例
+		if availableWidth > 0 && availableHeight > 0 {
+			scaleX = availableWidth / c.W
+			scaleY = availableHeight / c.H
+		} else {
+			scaleX = option.Width / c.W
+			scaleY = option.Height / c.H
+		}
+
+		// 锁定比例时，使用较小的缩放因子确保文本内容不超出容器
+		if option.LockRatio {
+			if scaleX > scaleY {
+				scaleX = scaleY
+			} else {
+				scaleY = scaleX
+			}
+		}
+
+		// 计算缩放后的内容尺寸
+		scaledWidth := c.W * scaleX
+		scaledHeight := c.H * scaleY
+
+		// 根据对齐方式计算偏移量
+		offsetX := option.Padding[3] // 默认左对齐
+		offsetY := option.Padding[0] // 默认上对齐
+
+		// 水平对齐
+		if option.Align == TextAlignCenter {
+			offsetX = option.Padding[3] + (availableWidth-scaledWidth)/2
+		} else if option.Align == TextAlignRight {
+			offsetX = option.Width - option.Padding[1] - scaledWidth
+		}
+
+		// 垂直对齐
+		if option.VAlign == TextVAlignCenter {
+			offsetY = option.Padding[0] + (availableHeight-scaledHeight)/2
+		} else if option.VAlign == TextVAlignBottom {
+			offsetY = option.Height - option.Padding[2] - scaledHeight
+		}
+
+		// 创建新画布并应用变换
+		newCanvas := canvas.New(option.Width, option.Height)
+		c.RenderViewTo(newCanvas, canvas.Matrix{
+			{scaleX, 0, offsetX},
+			{0, scaleY, offsetY},
+		})
+		c = newCanvas
 	} else if option.Width > 0 {
 		// 指定宽度自适应高度
-		scaleX = option.Width / c.W
+		if availableWidth > 0 {
+			scaleX = availableWidth / c.W
+		} else {
+			scaleX = option.Width / c.W
+		}
 		scaleY = scaleX
 		c.W = option.Width
-		c.H = c.H * scaleY
+		c.H = c.H*scaleY + option.Padding[0] + option.Padding[2]
+
+		// 应用偏移
+		newCanvas := canvas.New(c.W, c.H)
+		c.RenderViewTo(newCanvas, canvas.Matrix{
+			{scaleX, 0, option.Padding[3]},
+			{0, scaleY, option.Padding[0]},
+		})
+		c = newCanvas
 	} else if option.Height > 0 {
 		// 指定高度自适应宽度
-		scaleY = option.Height / c.H
+		if availableHeight > 0 {
+			scaleY = availableHeight / c.H
+		} else {
+			scaleY = option.Height / c.H
+		}
 		scaleX = scaleY
 		c.H = option.Height
-		c.W = c.W * scaleX
-	}
+		c.W = c.W*scaleX + option.Padding[1] + option.Padding[3]
 
-	c.Transform(canvas.Matrix{
-		{scaleX, 0, 0},
-		{0, scaleY, 0},
-	})
+		// 应用偏移
+		newCanvas := canvas.New(c.W, c.H)
+		c.RenderViewTo(newCanvas, canvas.Matrix{
+			{scaleX, 0, option.Padding[3]},
+			{0, scaleY, option.Padding[0]},
+		})
+		c = newCanvas
+	} else {
+		// 仅应用padding
+		if option.Padding[0] > 0 || option.Padding[1] > 0 || option.Padding[2] > 0 || option.Padding[3] > 0 {
+			newWidth := c.W + option.Padding[1] + option.Padding[3]
+			newHeight := c.H + option.Padding[0] + option.Padding[2]
+			newCanvas := canvas.New(newWidth, newHeight)
+			c.RenderViewTo(newCanvas, canvas.Matrix{
+				{1, 0, option.Padding[3]},
+				{0, 1, option.Padding[0]},
+			})
+			c = newCanvas
+		}
+	}
 
 	// 创建最终画布
 	finalCanvas := canvas.New(c.W, c.H)
@@ -113,15 +190,8 @@ func GenerateMultipleLinesText(option TextLineOption) (*canvas.Canvas, error) {
 		DrawRect(ctx, rectOption)
 	}
 
-	// 应用内边距
-	scaleX = (c.W - option.Padding[1] - option.Padding[3]) / finalCanvas.W
-	scaleY = (c.H - option.Padding[0] - option.Padding[2]) / finalCanvas.H
-
 	// 将内容画布应用到最终画布
-	c.RenderViewTo(finalCanvas, canvas.Matrix{
-		{scaleX, 0, option.Padding[3]},
-		{0, scaleY, option.Padding[0]},
-	})
+	c.RenderViewTo(finalCanvas, canvas.Identity)
 
 	// 绘制额外的文本
 	for _, extOption := range option.ExtraText {

@@ -15,10 +15,11 @@ const (
 
 // BaseOption 定义了画布的基本选项
 type BaseOption struct {
-	Width    float64 // 宽度
-	Height   float64 // 高度
-	ReverseX bool    // X轴翻转
-	ReverseY bool    // Y轴翻转
+	Width     float64 // 宽度
+	Height    float64 // 高度
+	ReverseX  bool    // X轴翻转
+	ReverseY  bool    // Y轴翻转
+	LockRatio bool    // 锁定宽高比例
 }
 
 // TextOption 定义了文本绘制选项
@@ -42,6 +43,7 @@ type TextLineOption struct {
 	Padding    [4]float64        // 内边距 [上，右，下，左]
 	LineGap    float64           // 行间距
 	Align      TextAlign         // 对齐方式
+	VAlign     TextAlign         // 垂直对齐方式
 	BaseOption                   // 嵌入基本选项
 	RectOption []RectOption      // 矩形选项列表（可选）
 	ExtraText  []ExtraTextOption // 额外的文本
