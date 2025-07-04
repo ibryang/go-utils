@@ -2,6 +2,7 @@ package text2svgV2
 
 import (
 	"errors"
+	"fmt"
 	"image/color"
 	"math"
 
@@ -112,6 +113,7 @@ func GenerateBaseText(option TextOption) (*canvas.Canvas, error) {
 		exactHeight = maxY - minY
 		path = p
 	}
+	fmt.Println(exactWidth, exactHeight)
 	// 创建一个尺寸刚好容纳所有字符的画布
 	textCanvas := canvas.New(exactWidth, exactHeight)
 	textCtx := canvas.NewContext(textCanvas)
@@ -162,7 +164,33 @@ func GenerateBaseText(option TextOption) (*canvas.Canvas, error) {
 	textCanvas = ReverseCanvas(textCanvas, option.ReverseX, option.ReverseY)
 	scaleX := 1.0
 	scaleY := 1.0
-	if option.Width == 0 && option.Height == 0 {
+	// 支持 minSize, maxSize 逻辑
+	// minSize 优先级高于 maxSize
+	if option.MinSize {
+		// MinSize 模式，按较小的缩放因子等比缩放
+		scaleX = option.Width / exactWidth
+		scaleY = option.Height / exactHeight
+		scale := scaleX
+		if scaleY < scaleX {
+			scale = scaleY
+		}
+		scaleX = scale
+		scaleY = scale
+		option.Width = exactWidth * scaleX
+		option.Height = exactHeight * scaleY
+	} else if option.MaxSize {
+		// MaxSize 模式，按较大的缩放因子等比缩放
+		scaleX = option.Width / exactWidth
+		scaleY = option.Height / exactHeight
+		scale := scaleX
+		if scaleY > scaleX {
+			scale = scaleY
+		}
+		scaleX = scale
+		scaleY = scale
+		option.Width = exactWidth * scaleX
+		option.Height = exactHeight * scaleY
+	} else if option.Width == 0 && option.Height == 0 {
 		option.Width = exactWidth
 		option.Height = exactHeight
 	} else if option.Width > 0 {

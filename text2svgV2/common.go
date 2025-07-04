@@ -15,6 +15,8 @@ const (
 
 // BaseOption 定义了画布的基本选项
 type BaseOption struct {
+	MinSize   bool    // 获取宽高最小比例
+	MaxSize   bool    // 获取宽高最大比例
 	Width     float64 // 宽度
 	Height    float64 // 高度
 	ReverseX  bool    // X轴翻转
