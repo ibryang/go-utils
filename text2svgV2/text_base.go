@@ -2,7 +2,6 @@ package text2svgV2
 
 import (
 	"errors"
-	"fmt"
 	"image/color"
 	"math"
 
@@ -113,7 +112,6 @@ func GenerateBaseText(option TextOption) (*canvas.Canvas, error) {
 		exactHeight = maxY - minY
 		path = p
 	}
-	fmt.Println(exactWidth, exactHeight)
 	// 创建一个尺寸刚好容纳所有字符的画布
 	textCanvas := canvas.New(exactWidth, exactHeight)
 	textCtx := canvas.NewContext(textCanvas)

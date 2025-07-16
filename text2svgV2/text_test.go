@@ -6,31 +6,35 @@ import (
 	"github.com/tdewolff/canvas/renderers"
 )
 
+// 弧形文字
+
 func TestGenerateTextSvg(t *testing.T) {
 	option := TextOption{
-		Text:        "Benjamin",
-		FontPath:    "Cookie",
-		FontSize:    100,
-		FontColor:   "red",
-		StrokeColor: "blue",
-		StrokeWidth: .1,
+		Text:      `Universal`,
+		FontPath:  "Cookie",
+		FontSize:  100,
+		FontColor: "red",
+		// StrokeColor: "blue",
+		// StrokeWidth: .1,
 		BaseOption: BaseOption{
-			Width: 200,
+			MinSize: true,
+			Width:   400,
+			Height:  80,
 		},
-		ExtraText: []ExtraTextOption{
-			{
-				X:      10,
-				Y:      1,
-				Align:  TextAlignCenter,
-				VAlign: TextVAlignTop,
-				TextOption: TextOption{
-					Text:      "001",
-					FontSize:  10,
-					FontColor: "blue",
-				},
-			},
-		},
-		RenderMode: RenderString,
+		// ExtraText: []ExtraTextOption{
+		// 	{
+		// 		X:      10,
+		// 		Y:      1,
+		// 		Align:  TextAlignCenter,
+		// 		VAlign: TextVAlignTop,
+		// 		TextOption: TextOption{
+		// 			Text:      "001",
+		// 			FontSize:  10,
+		// 			FontColor: "blue",
+		// 		},
+		// 	},
+		// },
+		RenderMode: RenderChar,
 	}
 
 	canvas, err := GenerateBaseText(option)
@@ -39,8 +43,8 @@ func TestGenerateTextSvg(t *testing.T) {
 	}
 
 	// 保存为SVG文件
-	// renderers.Write("text_test.svg", canvas)
-	GroupSvg(canvas, "text_test.svg")
+	renderers.Write("text_test.png", canvas)
+	// GroupSvg(canvas, "text_test.png")
 }
 
 func TestGenerateTextLine(t *testing.T) {
@@ -52,32 +56,36 @@ func TestGenerateTextLine(t *testing.T) {
 				FontSize:  100,
 				FontColor: []string{"blue", "red", "green"},
 			},
-			{
-				Text:      "Beijing",
-				FontPath:  "Cookie",
-				FontSize:  20,
-				FontColor: []string{"blue", "red", "green"},
-			},
-			{
-				Text:      "Beijing",
-				FontPath:  "Cookie",
-				FontSize:  16,
-				FontColor: []string{"blue", "red", "green"},
-			},
+			// {
+			// 	Text:      "Beijing",
+			// 	FontPath:  "Cookie",
+			// 	FontSize:  20,
+			// 	FontColor: []string{"blue", "red", "green"},
+			// },
+			// {
+			// 	Text:      "Beijing",
+			// 	FontPath:  "Cookie",
+			// 	FontSize:  16,
+			// 	FontColor: []string{"blue", "red", "green"},
+			// },
 		},
 		LineGap: 1,
 		Align:   TextAlignCenter,
+		VAlign:  TextVAlignCenter,
 		BaseOption: BaseOption{
-			ReverseX: true,
-			ReverseY: true,
+			// ReverseX: true,
+			// ReverseY: true,
+			Height:    80,
+			Width:     100,
+			LockRatio: true,
 		},
-		RectOption: []RectOption{
-			{
-				StrokeColor: "red",
-				StrokeWidth: 0.1,
-				Radius:      5,
-			},
-		},
+		// RectOption: []RectOption{
+		// 	{
+		// 		StrokeColor: "red",
+		// 		StrokeWidth: 0.1,
+		// 		Radius:      5,
+		// 	},
+		// },
 	}
 
 	canvas, err := GenerateMultipleLinesText(option)
@@ -86,8 +94,8 @@ func TestGenerateTextLine(t *testing.T) {
 	}
 
 	// 保存为PDF文件
-	renderers.Write("text_line_test.svg", canvas)
-	GroupSvg(canvas, "text_line_test2.svg")
+	renderers.Write("text_line_test.png", canvas)
+	// GroupSvg(canvas, "text_line_test2.svg")
 }
 
 func TestGenerateCanvas(t *testing.T) {
@@ -142,4 +150,20 @@ func TestGenerateCanvas(t *testing.T) {
 	}
 
 	renderers.Write("canvas_test.pdf", canvas)
+}
+
+func TestGenerateOriginalText(t *testing.T) {
+	option := TextOption{
+		Text: `Dr. Azmel Ainul
+Quality Engineer
+Dynamic Controls Ltd`,
+		FontPath:  "Cookie",
+		FontSize:  500,
+		FontColor: "#0000FF",
+	}
+	canvas, err := GenerateOriginalText(option)
+	if err != nil {
+		t.Fatalf("生成原始文本失败: %v", err)
+	}
+	renderers.Write("text_original.png", canvas)
 }
