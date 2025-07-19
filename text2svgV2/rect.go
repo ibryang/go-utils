@@ -2,6 +2,8 @@ package text2svgV2
 
 import (
 	"fmt"
+	"image"
+	"os"
 
 	"github.com/tdewolff/canvas"
 )
@@ -63,7 +65,6 @@ func DrawRect(ctx *canvas.Context, rectOption RectOption) {
 	}
 
 	ctx.SetFillColor(bgColor)
-
 	// 绘制矩形路径
 	var path *canvas.Path
 	if rectOption.Radius > 0 {
@@ -89,4 +90,24 @@ func DrawRect(ctx *canvas.Context, rectOption RectOption) {
 	ctx.DrawPath(rectOption.X, rectOption.Y, path)
 
 	ctx.Fill()
+
+	if rectOption.BgFile != "" {
+		// 判断 BgFile 是否为一个存在的文件
+		if fileInfo, err := os.Stat(rectOption.BgFile); err == nil && !fileInfo.IsDir() {
+			// 使用image库读取图片
+			file, err := os.Open(rectOption.BgFile)
+			if err == nil {
+				defer file.Close()
+				img, _, err := image.Decode(file)
+				if err == nil {
+					scaleX := rectOption.Width / float64(img.Bounds().Dx())
+					scaleY := rectOption.Height / float64(img.Bounds().Dy())
+					ctx.RenderImage(img, canvas.Matrix{
+						{scaleX, 0, rectOption.X},
+						{0, scaleY, rectOption.Y},
+					})
+				}
+			}
+		}
+	}
 }

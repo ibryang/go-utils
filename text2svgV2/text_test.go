@@ -21,6 +21,9 @@ func TestGenerateTextSvg(t *testing.T) {
 			Width:   400,
 			Height:  80,
 		},
+		RectOption: &RectOption{
+			BgColor: "#0000FF",
+		},
 		// ExtraText: []ExtraTextOption{
 		// 	{
 		// 		X:      10,
@@ -140,6 +143,7 @@ func TestGenerateCanvas(t *testing.T) {
 				StrokeColor: "red",
 				StrokeWidth: .1,
 				Radius:      5,
+				BgColor:     "#0000FF",
 			},
 		},
 	}

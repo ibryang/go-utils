@@ -69,6 +69,7 @@ type RectOption struct {
 	Y           float64 // Y坐标
 	Radius      float64 // 圆角半径
 	BgColor     string  // 背景颜色
+	BgFile      string  // 背景文件
 	StrokeColor string  // 描边颜色
 	StrokeWidth float64 // 描边宽度
 }
