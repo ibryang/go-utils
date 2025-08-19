@@ -10,10 +10,11 @@ import (
 
 func TestGenerateTextSvg(t *testing.T) {
 	option := TextOption{
-		Text:      `Universal`,
-		FontPath:  "Cookie",
-		FontSize:  100,
-		FontColor: "red",
+		Text:         `Dom ínguez`,
+		FontPath:     "/Users/ibryang/Downloads/DISNEY.TTF",
+		FontPathList: fontPathList,
+		FontSize:     100,
+		FontColor:    "red",
 		// StrokeColor: "blue",
 		// StrokeWidth: .1,
 		BaseOption: BaseOption{
@@ -50,20 +51,28 @@ func TestGenerateTextSvg(t *testing.T) {
 	// GroupSvg(canvas, "text_test.png")
 }
 
+var fontPathList = []string{
+	"/Users/ibryang/Downloads/Lato/Lato-Regular.ttf",
+	"/Users/ibryang/Desktop/demo/worker/custom_handler/配置信息/字体/font.ttf",
+	"/Users/ibryang/Desktop/demo/worker/custom_handler/配置信息/字体/贴纸字体.ttf",
+}
+
 func TestGenerateTextLine(t *testing.T) {
 	option := TextLineOption{
 		TextList: []TextOption{
 			{
-				Text:      "Beijing",
-				FontPath:  "Cookie",
-				FontSize:  100,
-				FontColor: []string{"blue", "red", "green"},
+				Text:         "Beijing",
+				FontPath:     "Cookie",
+				FontSize:     100,
+				FontPathList: fontPathList,
+				FontColor:    []string{"blue", "red", "green"},
 			},
 			// {
-			// 	Text:      "Beijing",
-			// 	FontPath:  "Cookie",
-			// 	FontSize:  20,
-			// 	FontColor: []string{"blue", "red", "green"},
+			// 	Text:         "Beijing",
+			// 	FontPath:     "Cookie",
+			// 	FontPathList: fontPathList,
+			// 	FontSize:     100,
+			// 	FontColor:    []string{"blue", "red", "green"},
 			// },
 			// {
 			// 	Text:      "Beijing",
@@ -79,7 +88,6 @@ func TestGenerateTextLine(t *testing.T) {
 			// ReverseX: true,
 			// ReverseY: true,
 			Height:    80,
-			Width:     100,
 			LockRatio: true,
 		},
 		// RectOption: []RectOption{
@@ -158,9 +166,7 @@ func TestGenerateCanvas(t *testing.T) {
 
 func TestGenerateOriginalText(t *testing.T) {
 	option := TextOption{
-		Text: `Dr. Azmel Ainul
-Quality Engineer
-Dynamic Controls Ltd`,
+		Text:      `اياد فؤاد`,
 		FontPath:  "Cookie",
 		FontSize:  500,
 		FontColor: "#0000FF",

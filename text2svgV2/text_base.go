@@ -4,6 +4,7 @@ import (
 	"errors"
 	"image/color"
 	"math"
+	"strings"
 
 	"github.com/tdewolff/canvas"
 )
@@ -12,6 +13,11 @@ import (
 func GenerateBaseText(option TextOption) (*canvas.Canvas, error) {
 	if option.Text == "" {
 		return nil, errors.New("text is required")
+	}
+	textEmpty := false
+	if strings.TrimSpace(option.Text) == "" {
+		textEmpty = true
+		option.Text = "H"
 	}
 	// 判断fontColor类型
 	var fontColor []color.RGBA
@@ -37,6 +43,9 @@ func GenerateBaseText(option TextOption) (*canvas.Canvas, error) {
 				}
 			}
 		}
+	}
+	if textEmpty {
+		fontColor = []color.RGBA{canvas.Hex("#FFFFFF00")}
 	}
 	if option.StrokeColor != nil {
 		if color, ok := option.StrokeColor.(string); ok {
@@ -64,32 +73,102 @@ func GenerateBaseText(option TextOption) (*canvas.Canvas, error) {
 	var exactWidth float64
 	var exactHeight float64
 
+	fontList := []*canvas.Font{}
+	for _, fontPath := range option.FontPathList {
+		face, err := LoadFont(fontPath)
+		if err != nil {
+			continue
+		}
+		fontList = append(fontList, face)
+	}
+
 	// 计算整个字符串的确切边界框
 	var xPos float64
 	var colorIndices []int
 	if option.RenderMode == RenderChar {
 		colorCount := 0
 		for _, char := range option.Text {
-			path, advance, err := fontface.ToPath(string(char))
-			if err != nil {
-				return nil, err
-			}
+			glyphs := fontface.Glyphs(string(char))
+			if glyphs[0].ID == 0 {
+				for _, font := range fontList {
+					fontface := font.Face(option.FontSize, option.FontColor)
+					glyphs := fontface.Glyphs(string(char))
+					if glyphs[0].ID == 0 {
+						continue
+					} else {
+						path, advance, err := fontface.ToPath(string(char))
+						if err != nil {
+							return nil, err
+						}
+						bounds := path.Bounds()
+						minX = math.Min(minX, bounds.X0+xPos)
+						minY = math.Min(minY, bounds.Y0)
+						maxX = math.Max(maxX, bounds.X1+xPos)
+						maxY = math.Max(maxY, bounds.Y1)
 
-			bounds := path.Bounds()
-			minX = math.Min(minX, bounds.X0+xPos)
-			minY = math.Min(minY, bounds.Y0)
-			maxX = math.Max(maxX, bounds.X1+xPos)
-			maxY = math.Max(maxY, bounds.Y1)
+						charPaths = append(charPaths, *path)
+						advances = append(advances, advance)
+						xPos += advance
+						if char == ' ' {
+							colorIndices = append(colorIndices, -1)
+							continue
+						}
+						colorIndices = append(colorIndices, colorCount%len(fontColor))
+						colorCount++
+						break
+					}
+				}
+			} else {
+				path, advance, err := fontface.ToPath(string(char))
+				if err != nil {
+					return nil, err
+				}
+				if len(path.String()) == 0 && string(char) != " " {
+					for _, font := range fontList {
+						fontface := font.Face(option.FontSize, option.FontColor)
+						glyphs := fontface.Glyphs(string(char))
+						if glyphs[0].ID == 0 {
+							continue
+						} else {
+							path, advance, err := fontface.ToPath(string(char))
+							if err != nil {
+								return nil, err
+							}
+							bounds := path.Bounds()
+							minX = math.Min(minX, bounds.X0+xPos)
+							minY = math.Min(minY, bounds.Y0)
+							maxX = math.Max(maxX, bounds.X1+xPos)
+							maxY = math.Max(maxY, bounds.Y1)
+							charPaths = append(charPaths, *path)
+							advances = append(advances, advance)
+							xPos += advance
+							if char == ' ' {
+								colorIndices = append(colorIndices, -1)
+								continue
+							}
+							colorIndices = append(colorIndices, colorCount%len(fontColor))
+							colorCount++
+							break
+						}
+					}
+				} else {
+					bounds := path.Bounds()
+					minX = math.Min(minX, bounds.X0+xPos)
+					minY = math.Min(minY, bounds.Y0)
+					maxX = math.Max(maxX, bounds.X1+xPos)
+					maxY = math.Max(maxY, bounds.Y1)
 
-			charPaths = append(charPaths, *path)
-			advances = append(advances, advance)
-			xPos += advance
-			if char == ' ' {
-				colorIndices = append(colorIndices, -1)
-				continue
+					charPaths = append(charPaths, *path)
+					advances = append(advances, advance)
+					xPos += advance
+					if char == ' ' {
+						colorIndices = append(colorIndices, -1)
+						continue
+					}
+					colorIndices = append(colorIndices, colorCount%len(fontColor))
+					colorCount++
+				}
 			}
-			colorIndices = append(colorIndices, colorCount%len(fontColor))
-			colorCount++
 		}
 
 		// 计算精确的宽度和高度

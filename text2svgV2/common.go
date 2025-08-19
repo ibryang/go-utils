@@ -26,14 +26,15 @@ type BaseOption struct {
 
 // TextOption 定义了文本绘制选项
 type TextOption struct {
-	Text        string      // 文本内容
-	FontPath    string      // 字体路径
-	FontSize    float64     // 字体大小
-	FontColor   any         // 字体颜色
-	StrokeColor any         // 描边颜色
-	StrokeWidth float64     // 描边宽度
-	BaseOption              // 嵌入基本选项
-	RectOption  *RectOption // 矩形选项（可选）
+	Text         string      // 文本内容
+	FontPath     string      // 字体路径
+	FontPathList []string    // 文字路径列表
+	FontSize     float64     // 字体大小
+	FontColor    any         // 字体颜色
+	StrokeColor  any         // 描边颜色
+	StrokeWidth  float64     // 描边宽度
+	BaseOption               // 嵌入基本选项
+	RectOption   *RectOption // 矩形选项（可选）
 	// 额外的文本
 	ExtraText  []ExtraTextOption // 额外的文本
 	RenderMode RenderMode        // 渲染模式

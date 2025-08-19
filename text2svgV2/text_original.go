@@ -17,10 +17,9 @@ func GenerateOriginalText(option TextOption) (*canvas.Canvas, error) {
 		return nil, err
 	}
 	fontface := font.Face(option.FontSize, canvas.Hex(option.FontColor.(string)))
-
 	// txt := canvas.NewTextLine(fontface, option.Text, canvas.Center)
 	txt := canvas.NewTextBox(fontface, option.Text, 0, 0, canvas.Justify, canvas.Center, 0, 0)
-
+	fmt.Println(txt)
 	bounds := txt.OutlineBounds()
 	c := canvas.New(bounds.W(), bounds.H())
 	ctx := canvas.NewContext(c)
