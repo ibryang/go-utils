@@ -2,12 +2,30 @@ package text2svgV2
 
 import (
 	"errors"
+	"fmt"
 	"image/color"
 	"math"
+	"runtime"
 	"strings"
 
 	"github.com/tdewolff/canvas"
 )
+
+func getFontBaseList() []string {
+	if runtime.GOOS == "windows" {
+		return []string{
+			`C:\Windows\Fonts\segoeui.ttf`,
+			`C:\Windows\Fonts\segoeui_0.ttf`,
+			`C:\Windows\Fonts\arial.ttf`,
+			`C:\Windows\Fonts\arial_0.ttf`,
+			`C:\Windows\Fonts\msyh.ttc`,
+		}
+	}
+	return []string{
+		`/System/Library/Fonts/Supplemental/Arial.ttf`,
+		`/System/Library/Fonts/Supplemental/Songti.ttc`,
+	}
+}
 
 // GenerateBaseText 生成基础文本
 func GenerateBaseText(option TextOption) (*canvas.Canvas, error) {
@@ -18,6 +36,10 @@ func GenerateBaseText(option TextOption) (*canvas.Canvas, error) {
 	if strings.TrimSpace(option.Text) == "" {
 		textEmpty = true
 		option.Text = "H"
+	}
+	// 如果检测到为RTL文字（如阿拉伯/希伯来等），反向排列文字
+	if !textEmpty && isRTLText(option.Text) {
+		option.RenderMode = RenderString
 	}
 	// 判断fontColor类型
 	var fontColor []color.RGBA
@@ -55,6 +77,12 @@ func GenerateBaseText(option TextOption) (*canvas.Canvas, error) {
 				strokeColor = canvas.Hex(color)
 			}
 		}
+	}
+
+	if len(option.FontPathList) == 0 {
+		option.FontPathList = getFontBaseList()
+	} else {
+		option.FontPathList = append(option.FontPathList, getFontBaseList()...)
 	}
 
 	font, err := LoadFont(option.FontPath)
@@ -289,6 +317,10 @@ func GenerateBaseText(option TextOption) (*canvas.Canvas, error) {
 		{scaleX, 0, 0},
 		{0, scaleY, 0},
 	})
+
+	if math.IsNaN(textCanvas.W) || math.IsNaN(textCanvas.H) {
+		return nil, fmt.Errorf("生成失败, 数据宽/高为空, 无法生成")
+	}
 	return textCanvas, nil
 }
 
@@ -349,4 +381,59 @@ func DrawExtraText(c *canvas.Context, extOption ExtraTextOption) {
 		{1, 0, offsetX},
 		{0, 1, c.Height() - offsetY - textCanvas.H},
 	})
+}
+
+// isRTLText 粗略判断文本是否包含从右到左的文字（例如阿拉伯、希伯来等）
+func isRTLText(s string) bool {
+	for _, r := range s {
+		if isRTRune(r) {
+			return true
+		}
+	}
+	return false
+}
+
+// isRTRune 判断单个rune是否属于常见RTL Unicode区段
+func isRTRune(r rune) bool {
+	switch {
+	// Hebrew
+	case r >= 0x0590 && r <= 0x05FF:
+		return true
+	// Arabic + Arabic Supplement + Arabic Extended-A
+	case r >= 0x0600 && r <= 0x06FF:
+		return true
+	case r >= 0x0750 && r <= 0x077F:
+		return true
+	case r >= 0x08A0 && r <= 0x08FF:
+		return true
+	// Syriac
+	case r >= 0x0700 && r <= 0x074F:
+		return true
+	// Thaana
+	case r >= 0x0780 && r <= 0x07BF:
+		return true
+	// NKo
+	case r >= 0x07C0 && r <= 0x07FF:
+		return true
+	// Arabic Presentation Forms-A
+	case r >= 0xFB50 && r <= 0xFDFF:
+		return true
+	// Arabic Presentation Forms-B
+	case r >= 0xFE70 && r <= 0xFEFF:
+		return true
+	// Right-to-left marks and formatting characters
+	case r == 0x202B || r == 0x202E || r == 0x200F:
+		return true
+	default:
+		return false
+	}
+}
+
+// reverseRunes 以rune为单位反转字符串
+func reverseRunes(s string) string {
+	runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	return string(runes)
 }

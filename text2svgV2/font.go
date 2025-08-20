@@ -36,7 +36,7 @@ func LoadFont(path string) (*canvas.Font, error) {
 }
 
 func LoadFontFamily(path string) (*canvas.Font, error) {
-	font, err := canvas.LoadSystemFont(file.Name(path), canvas.FontBlack)
+	font, err := canvas.LoadSystemFont(file.Name(path), canvas.FontStyle(canvas.FontNormal))
 	if err != nil {
 		return nil, err
 	}
