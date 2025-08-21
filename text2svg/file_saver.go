@@ -82,13 +82,9 @@ func saveJPEG(c *canvas.Canvas, config SaveConfig) error {
 
 // updateImageDPI 更新图片DPI信息
 func updateImageDPI(path string, dpi int) error {
-	baseData, err := changedpi.ChangeDpiByPath(path, dpi)
+	err := changedpi.ChangeDpi(path, path, dpi)
 	if err != nil {
 		return fmt.Errorf("更新DPI失败: %v", err)
-	}
-
-	if err := changedpi.SaveImage(path, baseData); err != nil {
-		return fmt.Errorf("保存更新DPI后的图片失败: %v", err)
 	}
 	return nil
 }

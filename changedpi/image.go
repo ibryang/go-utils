@@ -1,97 +1,123 @@
 package changedpi
 
 import (
-	"encoding/base64"
+	"bytes"
 	"errors"
-	"fmt"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 )
 
-func encode(src []byte) []byte {
-	dst := make([]byte, base64.StdEncoding.EncodedLen(len(src)))
-	base64.StdEncoding.Encode(dst, src)
-	return dst
+type ImageType string
+
+const (
+	JPEG ImageType = ".jpeg"
+	JPG  ImageType = ".jpg"
+	PNG  ImageType = ".png"
+)
+
+func LoadImage(path string) (image.Image, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	img, _, err := image.Decode(file)
+	if err != nil {
+		return nil, err
+	}
+	return img, nil
 }
 
-// decode decodes the provided BASE64 encoded data.
-func decode(data []byte) ([]byte, error) {
-	src := make([]byte, base64.StdEncoding.DecodedLen(len(data)))
-	n, err := base64.StdEncoding.Decode(src, data)
+func LoadImageBytes(data []byte) image.Image {
+	img, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
-		return nil, errors.New("base64.StdEncoding.Decode failed: " + err.Error())
+		panic(err)
 	}
-	return src[:n], nil
+	return img
 }
 
-// SaveImage saves a BASE64 encoded image string to an output file.
-func SaveImage(output, base64Image string) error {
-	// Split the base64 header and data
-	sp := strings.Split(base64Image, "base64,")
-	if len(sp) != 2 {
-		return errors.New("base64 format error")
-	}
-	base64Str := sp[1]
-
-	// Decode the Base64 string
-	data, err := decode([]byte(base64Str))
+func GetImageType(path string) (ImageType, error) {
+	data, err := os.ReadFile(path)
 	if err != nil {
-		return err
+		return "", err
 	}
+	_, _, err = image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return "", err
+	}
+	ext := strings.ToLower(filepath.Ext(path))
+	return ImageType(ext), nil
+}
 
-	// Create and write to the output file
-	file, err := os.Create(output)
+func SaveImage(path string, img image.Image) error {
+	ext := filepath.Ext(path)
+	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-
-	// Write the decoded image data to the file
-	if _, err := file.Write(data); err != nil {
-		return err
+	if ext == ".jpeg" || ext == ".jpg" || ext == ".JPG" || ext == ".JPEG" {
+		return jpeg.Encode(file, img, nil)
 	}
-
-	return nil
+	if ext == ".png" || ext == ".PNG" {
+		return png.Encode(file, img)
+	}
+	return errors.New("图片格式不支持")
 }
 
-// EncodeFileString encodes file content of `path` using BASE64 algorithms.
-func EncodeFileString(filename string) (string, error) {
-	content, err := os.ReadFile(filename)
-	if err != nil {
-		err = errors.New(fmt.Sprintf(`os.ReadFile failed for filename "%s"`, filename))
-		return "", err
-	}
-	return string(encode(content)), nil
+func SaveBytes(path string, data []byte) error {
+	return os.WriteFile(path, data, 0644)
 }
 
-func GetBase64Image(filename string) (string, error) {
-	suffix := strings.ToLower(path.Ext(filename))
-	input, err := EncodeFileString(filename)
-	if err != nil {
-		return "", err
+// 判断图片格式
+func IsImage(path string) (ImageType, error) {
+	ext := strings.ToLower(filepath.Ext(path))
+	if ext == string(JPEG) || ext == string(JPG) || ext == string(PNG) {
+		return ImageType(ext), nil
 	}
-
-	if suffix == ".png" {
-		return "data:image/png;base64," + input, nil
-	}
-
-	if suffix == ".jpg" || suffix == ".jpeg" {
-		return "data:image/jpeg;base64," + input, nil
-	}
-
-	return "", nil
+	return "", errors.New("图片格式不支持")
 }
 
-func ChangeDpiByPath(path string, dpi int) (string, error) {
-	baseStr, err := GetBase64Image(path)
-	if err != nil {
-		return "", err
+// GetImageBounds 获取图片的边界
+func GetImageBounds(img image.Image) (minX, minY, maxX, maxY int) {
+	bounds := img.Bounds()
+	return bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y
+}
+
+// GetContentBounds 获取图片中实际有内容的边界
+func GetContentBounds(img image.Image) (minX, minY, maxX, maxY int) {
+	bounds := img.Bounds()
+	minX, minY = bounds.Max.X, bounds.Max.Y
+	maxX, maxY = bounds.Min.X, bounds.Min.Y
+
+	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+			_, _, _, a := img.At(x, y).RGBA()
+			if a > 0 { // 非完全透明
+				if x < minX {
+					minX = x
+				}
+				if y < minY {
+					minY = y
+				}
+				if x > maxX {
+					maxX = x
+				}
+				if y > maxY {
+					maxY = y
+				}
+			}
+		}
 	}
 
-	output, err := ChangeDpi(baseStr, dpi)
-	if err != nil {
-		return "", nil
+	// 如果没有找到非透明像素，返回整个图像的边界
+	if minX > maxX || minY > maxY {
+		return bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y
 	}
-	return output, nil
+
+	return
 }

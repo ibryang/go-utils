@@ -1,179 +1,270 @@
 package changedpi
 
 import (
-	"encoding/base64"
+	"bytes"
+	"encoding/binary"
+	"errors"
 	"fmt"
-	"strings"
+	"hash/crc32"
+	"os"
 )
 
-var pngDataTable []uint32
-
-func createPngDataTable() []uint32 {
-	crcTable := make([]uint32, 256)
-	for n := 0; n < 256; n++ {
-		var c uint32 = uint32(n)
-		for k := 0; k < 8; k++ {
-			if c&1 != 0 {
-				c = 0xedb88320 ^ (c >> 1)
-			} else {
-				c >>= 1
-			}
-		}
-		crcTable[n] = c
-	}
-	return crcTable
-}
-
-func calcCrc(buf []byte) uint32 {
-	var c uint32 = 0xffffffff
-	if pngDataTable == nil {
-		pngDataTable = createPngDataTable()
-	}
-	for _, b := range buf {
-		c = pngDataTable[(c^uint32(b))&0xff] ^ (c >> 8)
-	}
-	return c ^ 0xffffffff
-}
-
+// 常量定义
 const (
-	PNG  = "image/png"
-	JPEG = "image/jpeg"
-	JPG  = "image/jpg"
+	pngHeader  = "\x89PNG\r\n\x1a\n"
+	jpegHeader = "\xFF\xD8\xFF"
+
+	// JPEG 相关常量
+	jpegMarkerSOI  = 0xD8 // Start of Image
+	jpegMarkerSOS  = 0xDA // Start of Scan
+	jpegMarkerAPP0 = 0xE0 // JFIF 应用段
+	jpegMarkerAPP1 = 0xE1 // EXIF 应用段
+
+	// TIFF 标签
+	tiffTagXResolution = 0x011A
+	tiffTagYResolution = 0x011B
+
+	// DPI 转换系数 (1 inch = 0.0254 meter)
+	dpiToPpmFactor = 39.3700787
 )
 
+// ErrUnsupportedFormat 表示不支持的图片格式
 var (
-	b64PhysSignature1 = "AAlwSFlz"
-	b64PhysSignature2 = "AAAJcEhZ"
-	b64PhysSignature3 = "AAAACXBI"
-
-	_P = byte('p')
-	_H = byte('H')
-	_Y = byte('Y')
-	_S = byte('s')
+	ErrUnsupportedFormat  = errors.New("图片格式不支持")
+	ErrInvalidJPEG        = errors.New("无效的JPEG文件")
+	ErrInvalidJPEGSegment = errors.New("无效的JPEG段")
+	ErrInvalidPNG         = errors.New("无效的PNG文件")
 )
 
-func ChangeDpi(base64Image string, dpi int) (string, error) {
-	parts := strings.Split(base64Image, ",")
-	format := parts[0]
-	body := parts[1]
+// ChangeDpi 修改图片的DPI
+// inputPath: 输入图片路径
+// outputPath: 输出图片路径
+// dpi: 目标DPI值
+func ChangeDpi(inputPath, outputPath string, dpi int) error {
+	// 检查图片格式
+	_, err := IsImage(inputPath)
+	if err != nil {
+		return ErrUnsupportedFormat
+	}
 
-	var imgType string
-	var headerLength int
-	var overwritepHYs bool
+	// 读取图片数据
+	imgData, err := os.ReadFile(inputPath)
+	if err != nil {
+		return fmt.Errorf("读取图片失败: %w", err)
+	}
 
-	if strings.Contains(format, PNG) {
-		imgType = PNG
-		b64Index := detectPhysChunkFromDataUrl(body)
-		if b64Index >= 0 {
-			headerLength = (b64Index + 28 + 2) / 3 * 4
-			overwritepHYs = true
-		} else {
-			headerLength = int(33.0 / 3.0 * 4.0)
+	// 验证图片内部格式
+	imgType, err := checkImageType(imgData)
+	if err != nil {
+		return err
+	}
+
+	// 根据图片类型修改DPI
+	var newData []byte
+	switch imgType {
+	case JPEG, JPG:
+		newData, err = changeDpiByJpeg(imgData, dpi)
+	case PNG:
+		newData, err = changeDpiByPng(imgData, dpi)
+	default:
+		return ErrUnsupportedFormat
+	}
+
+	if err != nil {
+		return fmt.Errorf("修改DPI失败: %w", err)
+	}
+
+	// 写入输出文件
+	if err = SaveBytes(outputPath, newData); err != nil {
+		return fmt.Errorf("保存图片失败: %w", err)
+	}
+
+	return nil
+}
+
+// changeDpiByPng 修改PNG图片的DPI
+func changeDpiByPng(data []byte, dpi int) ([]byte, error) {
+	return insertOrReplacePhysChunk(data, float64(dpi))
+}
+
+// dpiToPpm 将DPI转换为像素/米
+func dpiToPpm(dpi float64) uint32 {
+	return uint32(dpi * dpiToPpmFactor)
+}
+
+// buildPhysChunk 构造PNG的pHYs chunk
+func buildPhysChunk(dpi float64) []byte {
+	ppm := dpiToPpm(dpi)
+	data := make([]byte, 9)
+	binary.BigEndian.PutUint32(data[0:4], ppm) // X分辨率
+	binary.BigEndian.PutUint32(data[4:8], ppm) // Y分辨率
+	data[8] = 1                                // 单位为米
+
+	chunkType := []byte("pHYs")
+	crc := crc32.ChecksumIEEE(append(chunkType, data...))
+
+	var buf bytes.Buffer
+	binary.Write(&buf, binary.BigEndian, uint32(len(data))) // 长度
+	buf.Write(chunkType)                                    // 类型
+	buf.Write(data)                                         // 数据
+	binary.Write(&buf, binary.BigEndian, crc)               // CRC校验
+	return buf.Bytes()
+}
+
+// insertOrReplacePhysChunk 插入或替换PNG的pHYs chunk
+func insertOrReplacePhysChunk(data []byte, dpi float64) ([]byte, error) {
+	if !bytes.HasPrefix(data, []byte(pngHeader)) {
+		return nil, ErrInvalidPNG
+	}
+
+	physChunk := buildPhysChunk(dpi)
+	physMarker := []byte("pHYs")
+	var out bytes.Buffer
+
+	// 查找pHYs的起始位置
+	idx := bytes.Index(data, physMarker)
+	if idx >= 0 {
+		// 替换已有pHYs
+		if idx < 4 {
+			return nil, ErrInvalidPNG
 		}
-	} else if strings.Contains(format, JPEG) || strings.Contains(format, JPG) {
-		imgType = JPEG
-		headerLength = int(18.0 / 3.0 * 4.0)
+		start := idx - 4
+		length := binary.BigEndian.Uint32(data[start:idx])
+		end := idx + 4 + int(length) + 4
+		if end > len(data) {
+			return nil, ErrInvalidPNG
+		}
+		out.Write(data[:start])
+		out.Write(physChunk)
+		out.Write(data[end:])
 	} else {
-		return "", fmt.Errorf("unsupported image format: %s", format)
+		// 插入到第一个IDAT前
+		idatIdx := bytes.Index(data, []byte("IDAT"))
+		if idatIdx < 0 || idatIdx < 4 {
+			return nil, ErrInvalidPNG
+		}
+		insertPos := idatIdx - 4
+		out.Write(data[:insertPos])
+		out.Write(physChunk)
+		out.Write(data[insertPos:])
 	}
 
-	stringHeader := body[:headerLength]
-	restOfData := body[headerLength:]
-
-	headerBytes, err := base64.StdEncoding.DecodeString(stringHeader)
-	if err != nil {
-		return "", err
-	}
-
-	dataArray := make([]byte, len(headerBytes))
-	for i, b := range headerBytes {
-		dataArray[i] = b
-	}
-
-	finalArray, err := changeDpiOnArray(dataArray, dpi, imgType, overwritepHYs)
-	if err != nil {
-		return "", err
-	}
-
-	base64Header := base64.StdEncoding.EncodeToString(finalArray)
-	return fmt.Sprintf("%s,%s%s", format, base64Header, restOfData), nil
+	return out.Bytes(), nil
 }
 
-func detectPhysChunkFromDataUrl(data string) int {
-	b64index := strings.Index(data, b64PhysSignature1)
-	if b64index == -1 {
-		b64index = strings.Index(data, b64PhysSignature2)
+// checkImageType 检查图片二进制数据的类型
+func checkImageType(data []byte) (ImageType, error) {
+	if bytes.HasPrefix(data, []byte(pngHeader)) {
+		return PNG, nil
 	}
-	if b64index == -1 {
-		b64index = strings.Index(data, b64PhysSignature3)
-	}
-	return b64index
-}
-
-func searchStartOfPhys(data []byte) int {
-	length := len(data) - 1
-	for i := length; i >= 4; i-- {
-		if data[i-4] == 9 && data[i-3] == _P &&
-			data[i-2] == _H && data[i-1] == _Y &&
-			data[i] == _S {
-			return i - 3
+	if bytes.HasPrefix(data, []byte(jpegHeader)) {
+		if len(data) >= 3 && data[2] == 0xFF {
+			return JPEG, nil
 		}
 	}
-	return -1
+	return "", ErrUnsupportedFormat
 }
 
-func changeDpiOnArray(dataArray []byte, dpi int, format string, overwritepHYs bool) ([]byte, error) {
-	if format == JPEG {
-		if len(dataArray) < 18 {
-			return nil, fmt.Errorf("invalid JPEG data")
-		}
-		dataArray[13] = 1 // 1 pixel per inch or 2 pixel per cm
-		dataArray[14] = byte(dpi >> 8)
-		dataArray[15] = byte(dpi & 0xff)
-		dataArray[16] = byte(dpi >> 8)
-		dataArray[17] = byte(dpi & 0xff)
-		return dataArray, nil
+// changeDpiByJpeg 修改JPEG图片的DPI（JFIF或EXIF）
+func changeDpiByJpeg(data []byte, dpi int) ([]byte, error) {
+	// 验证JPEG头
+	if len(data) < 4 || data[0] != 0xFF || data[1] != jpegMarkerSOI {
+		return nil, ErrInvalidJPEG
 	}
 
-	if format == PNG {
-		// this multiplication is because the standard is dpi per meter.
-		dpi = int(float64(dpi) * 39.3701)
-		physChunk := make([]byte, 13)
-		physChunk[0] = _P
-		physChunk[1] = _H
-		physChunk[2] = _Y
-		physChunk[3] = _S
-		physChunk[4] = byte(dpi >> 24)
-		physChunk[5] = byte(dpi >> 16)
-		physChunk[6] = byte(dpi >> 8)
-		physChunk[7] = byte(dpi & 0xff)
-		physChunk[8] = physChunk[4]
-		physChunk[9] = physChunk[5]
-		physChunk[10] = physChunk[6]
-		physChunk[11] = physChunk[7]
-		physChunk[12] = 1
+	// 创建副本以避免修改原始数据
+	result := make([]byte, len(data))
+	copy(result, data)
 
-		crc := calcCrc(physChunk)
+	// 遍历所有段
+	i := 2
+	for i < len(result) {
+		if result[i] != 0xFF {
+			return nil, ErrInvalidJPEGSegment
+		}
 
-		crcChunk := []byte{byte(crc >> 24), byte(crc >> 16), byte(crc >> 8), byte(crc)}
-		if overwritepHYs {
-			startingIndex := searchStartOfPhys(dataArray)
-			if startingIndex == -1 {
-				return nil, fmt.Errorf("pHYs chunk not found")
+		marker := result[i+1]
+		if marker == jpegMarkerSOS { // SOS段，图像数据开始
+			break
+		}
+
+		// 段长度包含长度字段本身(2字节)
+		if i+2 >= len(result) {
+			return nil, ErrInvalidJPEGSegment
+		}
+		segLen := int(binary.BigEndian.Uint16(result[i+2:])) + 2
+		if i+segLen > len(result) {
+			return nil, ErrInvalidJPEGSegment
+		}
+
+		segEnd := i + segLen
+
+		switch marker {
+		case jpegMarkerAPP0: // APP0 (JFIF)
+			if segLen >= 16 {
+				// 修改JFIF中的X和Y分辨率
+				binary.BigEndian.PutUint16(result[i+0x0C:], uint16(dpi))
+				binary.BigEndian.PutUint16(result[i+0x0E:], uint16(dpi))
 			}
-			copy(dataArray[startingIndex:], physChunk)
-			copy(dataArray[startingIndex+13:], crcChunk)
-			return dataArray, nil
-		} else {
-			chunkLength := []byte{0, 0, 0, 9}
-			finalHeader := make([]byte, 54)
-			copy(finalHeader, dataArray[:33])
-			copy(finalHeader[33:], chunkLength)
-			copy(finalHeader[37:], physChunk)
-			copy(finalHeader[50:], crcChunk)
-			return finalHeader, nil
+		case jpegMarkerAPP1: // APP1 (EXIF)
+			updateExifDpi(result, i, segLen, dpi)
 		}
+
+		i = segEnd
 	}
 
-	return nil, fmt.Errorf("unsupported image format: %s", format)
+	return result, nil
+}
+
+// updateExifDpi 更新EXIF中的DPI信息
+func updateExifDpi(data []byte, offset, segLen, dpi int) {
+	// 检查是否为EXIF段
+	if segLen < 20 || offset+10 > len(data) {
+		return
+	}
+
+	if string(data[offset+4:offset+10]) != "Exif\x00\x00" {
+		return
+	}
+
+	// 找到TIFF头
+	tiffStart := offset + 10
+	if tiffStart+8 > len(data) {
+		return
+	}
+
+	// 判断字节序
+	var byteOrder binary.ByteOrder
+	if data[tiffStart] == 'I' && data[tiffStart+1] == 'I' {
+		byteOrder = binary.LittleEndian
+	} else if data[tiffStart] == 'M' && data[tiffStart+1] == 'M' {
+		byteOrder = binary.BigEndian
+	} else {
+		return // 无效的TIFF头
+	}
+
+	// 找到第一个IFD
+	ifdOffset := byteOrder.Uint32(data[tiffStart+4:])
+	ifdStart := int(tiffStart) + int(ifdOffset)
+	if ifdStart+2 > len(data) {
+		return
+	}
+
+	numEntries := byteOrder.Uint16(data[ifdStart:])
+	pos := ifdStart + 2
+
+	// 遍历IFD条目
+	for j := 0; j < int(numEntries) && pos+12 <= len(data); j++ {
+		tag := byteOrder.Uint16(data[pos:])
+		if tag == tiffTagXResolution || tag == tiffTagYResolution {
+			// 修改分辨率值
+			valOffset := byteOrder.Uint32(data[pos+8:])
+			valAddr := int(tiffStart) + int(valOffset)
+			if valAddr+8 <= len(data) {
+				byteOrder.PutUint32(data[valAddr:], uint32(dpi))
+				byteOrder.PutUint32(data[valAddr+4:], 1)
+			}
+		}
+		pos += 12
+	}
 }
