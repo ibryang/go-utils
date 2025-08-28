@@ -19,8 +19,9 @@ var fontPathList = []string{
 
 func TestGenerateTextSvg(t *testing.T) {
 	option := TextOption{
-		Text:     "كل عام وهبة اجمل معلمة",
-		FontPath: "Cookie",
+		Text:     "فدك كرم",
+		FontPath: "/Users/ibryang/Downloads/Arciform.ttf",
+		// FontPath: "Arial",
 		// FontPathList: fontPathList,
 		FontSize:  100,
 		FontColor: "red",
@@ -47,7 +48,7 @@ func TestGenerateTextSvg(t *testing.T) {
 		// 		},
 		// 	},
 		// },
-		RenderMode: RenderChar,
+		RenderMode: RenderString,
 	}
 
 	canvas, err := GenerateBaseText(option)

@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/tdewolff/canvas"
+	"github.com/tdewolff/canvas/text"
+	"github.com/tdewolff/font"
 )
 
 func getFontBaseList() []string {
@@ -205,7 +207,10 @@ func GenerateBaseText(option TextOption) (*canvas.Canvas, error) {
 	}
 	var path *canvas.Path
 	if option.RenderMode == RenderString {
-		p, _, err := fontface.ToPath(option.Text)
+		// p, _, err := fontface.ToPath(option.Text)
+
+		p, _, err := ToPath(fontface, fontList, option.Text, option.FontSize)
+		// p, _, err := ToPath(fontface, fontList, option.Text, option.FontSize)
 		if err != nil {
 			return nil, err
 		}
@@ -436,4 +441,55 @@ func reverseRunes(s string) string {
 		runes[i], runes[j] = runes[j], runes[i]
 	}
 	return string(runes)
+}
+
+// ToPath converts a string to its glyph paths.
+func ToPath(face *canvas.FontFace, fontFaceList []*canvas.Font, s string, fontSize float64) (*canvas.Path, float64, error) {
+	ppem := face.PPEM(96 * 1.0 / 25.4)
+	return toPath(face, fontFaceList, face.Glyphs(s), strings.Split(s, ""), ppem, fontSize)
+}
+
+func toPath(face *canvas.FontFace, fontFaceList []*canvas.Font, glyphs []text.Glyph, glyphNames []string, ppem uint16, fontSize float64) (*canvas.Path, float64, error) {
+	p := &canvas.Path{}
+	f := face.MmPerEm
+	x, y := face.XOffset, face.YOffset
+	for i, glyph := range glyphs {
+		if glyph.ID == 0 {
+			for _, font_ := range fontFaceList {
+				fontface := font_.Face(fontSize, face.Fill)
+				glyphs := fontface.Glyphs(glyphNames[i])
+				if glyphs[0].ID == 0 {
+					continue
+				}
+				glyph = glyphs[0]
+				err := fontface.Font.GlyphPath(p, glyph.ID, ppem, f*float64(x+glyph.XOffset), f*float64(y+glyph.YOffset), fontface.MmPerEm, font.NoHinting)
+				if err != nil {
+					return p, 0.0, err
+				}
+				x += int32(float64(glyph.XAdvance) * (fontface.MmPerEm / f))
+				y += int32(float64(glyph.YAdvance) * (fontface.MmPerEm / f))
+				break
+			}
+		} else {
+			err := face.Font.GlyphPath(p, glyph.ID, ppem, f*float64(x+glyph.XOffset), f*float64(y+glyph.YOffset), f, font.NoHinting)
+			if err != nil {
+				return p, 0.0, err
+			}
+			x += glyph.XAdvance
+			y += glyph.YAdvance
+		}
+	}
+
+	if face.FauxBold != 0.0 {
+		d := face.FauxBold * face.Size
+		if face.Font.IsTrueType {
+			// TrueType is CW oriented for filling contours.
+			d = -d
+		}
+		p = p.Offset(d, 0.01)
+	}
+	if face.FauxItalic != 0.0 {
+		p = p.Transform(canvas.Identity.Shear(face.FauxItalic, 0.0))
+	}
+	return p, face.MmPerEm * float64(x), nil
 }
